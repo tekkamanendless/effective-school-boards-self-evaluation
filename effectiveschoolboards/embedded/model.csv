@@ -1,0 +1,123 @@
+ID,Item,Tier,Focus Mindset,Clarify Priorities 1,Clarify Priorities 2,Monitor Progress,Align Resources,Communicate Results
+z01,"Any Board Member voted on an item on which they had a conflict of interest, as defined by law.",0,,,,,0,
+z02,Any meeting of the Board lasted more than eight hours during the previous twelve month period.,0,,,,,0,
+z03,Board Members serve on committees formed by the Superintendent or staff when it’s not legally mandated without approval of the Superintendent and a majority of the Board.,0,,,,,0,
+z04,The Board did not receive the final version of materials to be voted on at least three calendar days before the Board-authorized public meeting during which the materials would be considered.,0,,,,,,0
+z05,The Board does not schedule each goal to be monitored at least four times per year.,0,,,,0,,
+z06,The Board does not schedule each guardrail to be monitored at least once per year.,0,,,,0,,
+z07,The Board does not track its use of time in Board-authorized public meetings.,0,,,,0,,
+z08,The Board does not use a consent agenda.,0,,,,,,0
+z09,The Board has not adopted a monitoring calendar.,0,,,,0,,
+z10,The Board has not adopted policies about delegation that establish the Board’s relationship to its direct reports.,0,,,,,0,
+z11,The Board has not adopted policies about goals that clarify the community’s vision.,0,,0,0,0,0,0
+z12,The Board has not adopted policies about governing that establish the Board’s operating processes.,0,,,,,0,
+z13,The Board has not adopted policies about guardrails that clarify the community’s values.,0,,,0,,,
+z14,The Board has not conducted a self evaluation during the previous twelve month period.,0,0,,,,,
+z15,The Board has not consistently demonstrated the ability to distinguish between adult inputs and student outcomes.,0,0,0,,,,
+z16,The Board has not consistently demonstrated the ability to distinguish between Board work and Superintendent work.,0,,,,,0,
+z17,The Board has not consistently demonstrated the ability to distinguish between customer service/issues and owner service/issues.,0,,,,,,0
+z18,The Board has not consistently demonstrated the ability to distinguish between effective monitoring and ineffective monitoring.,0,,,,0,,
+z19,The Board has not consistently demonstrated the ability to distinguish between goals that are SMART and those that are not.,0,,0,,,,
+z20,"The Board has not consistently demonstrated the ability to distinguish between inputs, outputs, and outcomes.",0,0,,,,,
+z21,The Board has not evaluated its use of time in Board-authorized public meetings during the previous twelve month period.,0,0,,,,,
+z22,The Board has not hosted opportunities to listen to the values of the community during the previous thirty-six month period.,0,,,0,,,
+z23,The Board has not hosted opportunities to listen to the vision and values of the community during the previous thirty-six month period.,0,,,,,,0
+z24,The Board has not hosted opportunities to listen to the vision of the community during the previous thirty-six month period.,0,,0,,,,
+z25,"The Board has not participated in a governance team training or retreat where all members of the governance team were present, during the previous twelve month period.",0,0,,,,,
+z26,The Board has received training related to the knowledge and skills school boards need to be effective but not the mindset needed to be effective during the previous thirty-six month period.,0,0,,,,,
+z27,The school system has not achieved any of its interim goals during the previous twelve month period.,0,,,,0,,
+z28,There were more than six Board-authorized public meetings in a single month (this includes committees) during the previous twelve month period.,0,,,,,,0
+fa1,The Board received training on the effective school boards framework.,1,1,,,,,
+fa2,"The Board has scheduled quarterly self evaluations, with the annual self evaluation scheduled to take place no more than 45 days prior to the next Superintendent evaluation.",1,1,,,,,
+fa3,The Board tracks its use of time and reports at least quarterly the percentage of Board-authorized public meetings where there is time focused on student outcomes.,1,1,,,,,
+fb1,The Board has hosted and the Board Members have led or co-led at least one training session on the effective school boards framework during the previous twelve month period.,5,5,,,,,
+fb2,The most recent Board self-evaluation took place no more than 12 months ago using this instrument or a research- aligned instrument and the Board voted to adopt the results.,5,5,,,,,
+fb3,"The Board tracks the average annual cost of staff time invested in governance during its annual self evaluation. This includes the time of any staff members invested in preparing for, attending, and debriefing after meetings. This includes all Board-authorized public meetings as well as all closed sessions and all hearings.",5,5,,,,,
+fc1,The Board included students as presenters in at least one of the effective school boards framework training sessions during the previous twelve months.,10,10,,,,,
+fc2,"Prior to being selected, all newly selected Board Members received training on the effective school boards framework from fellow Board Members on their Board or from a coach certified in the effective school boards framework.",10,10,,,,,
+fc3,"The Board self evaluated using this instrument during the last three month period if its previous score was below 80 using this instrument, or during the last twelve month period if its previous score was 80+.",10,10,,,,,
+fc4,The Board’s annual self evaluation includes an opportunity for each Board Member to share examples of when their adult behaviors made it harder for students to achieve the goals.,10,10,,,,,
+pa1,The Board received training on listening for the community’s vision and using what the Board hears to set SMART goals.,5,,5,,,,
+pa2,"The Board included students, parents, staff, and community members in the goal development process.",5,,5,,,,
+pa3,"The Board relied on a root cause analysis, comprehensive student needs assessment, and/or similar research-based tool to inform identification of and prioritization of potential goals.",5,,5,,,,
+pa4,"The Board has developed, in collaboration with the Superintendent, a set of goals that represent the community’s vision for what students should know and be able to do.",5,,5,,,,
+pa5,The Board publicly posted the goals for public comment prior to adoption.,5,,5,,,,
+pa6,"In addition to the goal ending points, the Board has identified annual targets, goal ending points for each year leading up to the ending dates.",5,,5,,,,
+pa7,The Board has developed no fewer than one and no more than five goals. A max of three is recomm- ended because fewer goals allow for greater focus; more allow for less.,5,,5,,,,
+pb1,"All of the interim goals are predictive of their respective goals, and are influenceable by the Superintendent (and the Superintendent’s team). Predictive suggests that there is some evidence of a correlation between the interim goal and the goal. Influenceable suggests that the Superintendent — and through them, the staff — has authority over roughly 80% of the inputs the interim goal is measuring.",15,,15,,,,
+pb2,The Superintendent has provided interim goal ending points for each year leading up to the ending date.,15,,15,,,,
+pb3,"All interim goals pertain to student outputs or student outcomes, not inputs or adult outputs.",15,,15,,,,
+pb4,The status of each interim goal is able to be updated multiple times during each school year.,15,,15,,,,
+pb5,"The Superintendent has adopted, in collaboration with the Board, one to three interim goals to progress monitor each goal, and each interim goal is SMART — includes a specific measure, population, starting point, an ending point, a starting date, and an ending date. The recommended number of interim goals is three.",15,,15,,,,
+pc1,"The Board adopted goals using a process that included students, parents, staff, and community members in a way that led them to express ownership of the adopted goals.",20,,20,,,,
+pc2,The Board has adopted only SMART goals.,20,,20,,,,
+pc3,The Board’s goals all pertain to desired student outcomes rather than adult inputs.,20,,20,,,,
+pc4,The goals and interim goals will challenge the organization and will require change in adult behaviors.,20,,20,,,,
+pc5,All Board goals last from three to five years; interim goals generally last from one to three years.,20,,20,,,,
+pc6,All Board Members have memorized all of the Board’s adopted goals and the current status of each.,20,,20,,,,
+pd1,The Board received training on listening for the community’s values and using what the Board hears to set guardrails.,5,,,5,,,
+pd2,"The Board included students, parents, staff, and community members in the guardrail development process.",5,,,5,,,
+pd3,"The Board has developed, in collaboration with the Superintendent, guardrails based on the community’s values and that do not hinder pursuit of the goals. Each guardrail describes a single operational action or class of actions the Superintendent may not use or allow in pursuit of the goals.",5,,,5,,,
+pd4,The Board has developed no fewer than one and no more than five guardrails. A max of three is recommended because fewer guardrails allow for greater focus; more allow for less.,5,,,5,,,
+pd5,The Board publicly posted the guardrails for public comment prior to adoption.,5,,,5,,,
+pe1,"All of the interim guardrails are predictive of their respective guardrails, and are influenceable by the Superintendent (and the Superintendent’s team). Predictive suggests that there is some evidence of a correlation between the interim guardrail and the guardrail. Influenceable suggests that the Superintendent — and through them, the staff — has authority over roughly 80% of whatever the interim guardrail is measuring.",12,,,12,,,
+pe2,The Superintendent has provided interim guardrail ending points for each year leading up to the ending date.,12,,,12,,,
+pe3,"All interim guardrails pertain to outputs or outcomes, not inputs.",12,,,12,,,
+pe4,The status of each interim guardrail is able to be updated multiple times during each school year.,12,,,12,,,
+pe5,"The Superintendent has adopted, in collaboration with the Board, one to three interim guardrails for each guardrail, and each interim guardrail is SMART.",12,,,12,,,
+pf1,"The Board adopted guardrails using a process that included students, parents, staff, and community members in a way that led them to express ownership of the adopted guardrails and, if applicable, theories of action.",15,,,15,,,
+pf2,"The Board has considered adoption of one or more theories of action to drive the school system’s overall strategic direction. If there is a permanent Superintendent, that person was included in the theory consideration process.",15,,,15,,,
+pf3,"The guardrails, interim guardrails, and theories of action will challenge the organization and require change in adult behaviors.",15,,,15,,,
+pf4,"In addition to the guardrails on the Superintendent's authority, the Board has adopted one to five guardrails on its own behavior and evaluates itself against them at least quarterly.",15,,,15,,,
+pf5,All Board guardrails last from three to five years; all interim guardrails last from one to three years.,15,,,15,,,
+ma1,The Board received training on effective monitoring.,10,,,,10,,
+ma2,The Superintendent and their team received training on creating effective monitoring reports.,10,,,,10,,
+ma3,"The Superintendent, working collaboratively with the Board, led the monitoring calendar development processes.",10,,,,10,,
+ma4,The Board's monitoring calendar spans the length of the Board’s goals. A longer span allows for more focus; shorter allows for less.,10,,,,10,,
+ma5,No more than two goals are calendared for monitoring per month.,10,,,,10,,
+ma6,Every goal is calendared to be monitored at least four times per year.,10,,,,10,,
+ma7,Every guardrail is calendared to be monitored at least once per year.,10,,,,10,,
+ma8,The Board conducted its first practice monitoring session.,10,,,,10,,
+mb1,"The Board modifies its goals, guardrails, and monitoring calendar no more than once during the span of the Board’s adopted goals (unless they are met sooner). A longer period allows for more focus; shorter allows for less.",20,,,,20,,
+mb2,The Board has provided time during regularly scheduled Board-authorized public meetings to recognize the accomplishments of its students and staff regarding progress toward goals and interim goals.,20,,,,20,,
+mb3,The Board publicly displays the status and targets of all goals and interim goals in the room in which the Board most frequently holds regularly scheduled Board meetings.,20,,,,20,,
+mb4,The Board tracks its use of time in Board-authorized public meetings.,20,,,,20,,
+mb5,The Board has adopted a monitoring calendar.,20,,,,20,,
+mb6,The Board demonstrated effective monitoring (80% or higher) during each monitoring conversation.,20,,,,20,,
+mc1,The Board invests no less than 50% of its total Board-authorized public meeting minutes each month into effectively monitoring its goals.,30,,,,30,,
+mc2,The Board has received monitoring reports in accordance with its monitoring calendar.,30,,,,30,,
+mc3,The Board demonstrated highly effective monitoring (90% or higher) during each monitoring conversation.,30,,,,30,,
+mc4,The school system has achieved at least half of its interim goals during the previous twelve month period.,30,,,,30,,
+ra1,"The Board received training on aligning time, talent, and treasure resources with the goals and guardrails.",5,,,,,5,
+ra2,The Board received training on how to use a policy diet to make Board policies transparent and manageable.,5,,,,,5,
+ra3,"All Board Members agree that if the Board has committees, their role is only to advise the Board, not to advise the staff.",5,,,,,5,
+ra4,"The Superintendent evaluation instrument only includes sections regarding the Board’s goals, guardrails, and interim goals/guardrails. The Board considers Superintendent evaluation to be identical to school system evaluation.",5,,,,,5,
+ra5,"The Board has been provided copies of — but, unless required by law, did not vote to approve / disapprove — the Superintendent's plan(s) for implementing the Board's goals and worked to ensure that the plan included both an implementation timeline and implementation instruments.",5,,,,,5,
+rb1,"The Board has adopted an Ethics & Conflicts of Interest Statement requiring that:
+* Board Members do not give operational advice or instructions to staff members
+* Board Members are responsible for the outcomes of all students, not just students in their region of the school system
+* Board Members fully recuse themselves from matters involving individuals or organizations who made campaign contributions to them or who appointed them
+* All Board Members have signed the Ethics & Conflicts of Interest Statement during their current term of office",15,,,,,15,
+rb2,The Board has adopted a policy or procedure requiring that information provided by the Superintendent to one Board Member is provided to all Board Members.,15,,,,,15,
+rb3,The most recent annual Superintendent evaluation took place no more than twelve months ago.,15,,,,,15,
+rb4,The Board conducted a quarterly self-evaluation — or just annually if the most recent score was 80 or higher — and unanimously voted to adopt the results.,15,,,,,15,
+rc1,The Board invests no less than 50% of its total Board-authorized public meeting minutes each month into effectively monitoring its goals.,20,,,,,20,
+rc2,Only Board work was discussed and/or acted on during Board-authorized public meetings.,20,,,,,20,
+rc3,"The Board unanimously agreed during the most recent self-evaluation that:
+* All Board Members adhered to all policies related to Board governing/operating procedures
+* All Board Members have honored the three aforementioned ethical boundaries during the previous evaluation period.
+* None of the Board Members have given operational advice or instructions to staff members.",20,,,,,20,
+rc4,"If the Board approves an annual budget, it does so only after determining that the Board’s goals are the first priority for resource allocation.",20,,,,,20,
+rc5,The Board has conducted a policy diet and the Board as a whole reviews all remaining Board policies at least once during every length of time equal to a Board Member’s term of office.,20,,,,,20,
+ca1,"The Board received training on listening for the community’s vision and values, and on community engagement and community outreach.",1,,,,,,1
+ca2,The Board received training on how to use an agenda diet to make Board meetings transparent and observable.,1,,,,,,1
+ca3,The Board limits its adoption of governance policy regarding school system operations to matters that are 1) required by law or 2) an appropriate exercise of the Board's oversight authority as defined by the Board's adopted goals and/or guardrails.,1,,,,,,1
+ca4,All consent-eligible items were placed on the consent agenda and all but a few were voted on using a consent agenda.,1,,,,,,1
+cb1,There are no more than five Board-authorized public meetings per month and none lasts more than three hours.,3,,,,,,3
+cb2,The Board schedules no more than five topics for discussion during any one Board-authorized public meeting.,3,,,,,,3
+cb3,Existing policies that do not meet one of these criteria have been removed from the Board’s governance policy manual (though the Superintendent may retain them as part of administrative policy/regulation).,3,,,,,,3
+cb4,The Board made no edits to the Board's regularly scheduled meeting agenda during the meeting and during the three business days before the meeting unless a state of emergency was declared.,3,,,,,,3
+cc1,There are no more than three Board-authorized public meetings per month and none lasts more than two hours.,5,,,,,,5
+cc2,The Board schedules no more than three topics for discussion during any Board-authorized public meeting.,5,,,,,,5
+cc3,The Board received the final version of materials to be voted on at least seven to fourteen calendar days before the Board- authorized public meeting during which the materials would be considered.,5,,,,,,5
+cc4,"The Board used a process that included students, parents, staff, and community members in a way that led them to express ownership of the adopted goals and guardrails.",5,,,,,,5
