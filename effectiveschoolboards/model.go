@@ -65,10 +65,35 @@ func (m *Model) AllItems(answers []string) []Item {
 	}
 
 	slices.SortFunc(nextItems, func(a, b Item) int {
+		if a.Tier == 0 && b.Tier != 0 {
+			return -1
+		}
+		if a.Tier != 0 && b.Tier == 0 {
+			return 1
+		}
+
+		if !(a.Tier == 0 && b.Tier == 0) {
+			var aPrimaryCategory string
+			var bPrimaryCategory string
+			for _, category := range m.Categories {
+				if _, ok := a.CategoryScoreMap[category.Name]; ok {
+					aPrimaryCategory = category.Name
+				}
+				if _, ok := b.CategoryScoreMap[category.Name]; ok {
+					bPrimaryCategory = category.Name
+				}
+			}
+
+			if aPrimaryCategory != bPrimaryCategory {
+				return strings.Compare(aPrimaryCategory, bPrimaryCategory)
+			}
+		}
+
 		diff := cmp.Compare(a.Tier, b.Tier)
 		if diff != 0 {
 			return diff
 		}
+
 		return strings.Compare(a.Text, b.Text)
 	})
 
