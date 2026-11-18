@@ -8,8 +8,9 @@ import (
 
 // Model is the model for the effective school boards survey questions.
 type Model struct {
-	Items           []Item
-	CategoryTierMap map[string]map[int]int
+	Items                  []Item
+	Categories             []Category
+	CategoryTierToIndexMap map[string]map[int]int
 }
 
 // Item is a single item in the model.
@@ -22,9 +23,29 @@ type Item struct {
 }
 
 // MeetsRequirements returns true if the list of IDs given is sufficient to meet the item's requirements.
-func (i Item) MeetsRequirements(matchedIDs []string) bool {
+func (i Item) MeetsRequirements(answers []string) bool {
 	for _, requiredItemID := range i.RequiredItemIDs {
-		if !slices.Contains(matchedIDs, requiredItemID) {
+		if !slices.Contains(answers, requiredItemID) {
+			return false
+		}
+	}
+	return true
+}
+
+type Category struct {
+	Name  string         // This is the name of the category.
+	Tiers []CategoryTier // This is the list of tiers for the category.
+}
+
+type CategoryTier struct {
+	Tier            int      // This is the tier of the category (the number of points that it is worth).
+	RequiredItemIDs []string // This is the list of item IDs that must be present in order for this item to be answered.  Each of these will have a "+" or "-" prefix to indicate if it must be answered affirmatively or negatively.
+}
+
+// MeetsRequirements returns true if the list of IDs given is sufficient to meet the category tier's requirements.
+func (i CategoryTier) MeetsRequirements(answers []string) bool {
+	for _, requiredItemID := range i.RequiredItemIDs {
+		if !slices.Contains(answers, requiredItemID) {
 			return false
 		}
 	}
@@ -34,10 +55,10 @@ func (i Item) MeetsRequirements(matchedIDs []string) bool {
 // AllItems returns a list of items that can be answered.
 //
 // If provided, the list of matched IDs are assumed to have been answered affirmatively or negatively, based on the "+" or "-" prefix.
-func (m *Model) AllItems(matchedIDs []string) []Item {
+func (m *Model) AllItems(answers []string) []Item {
 	nextItems := []Item{}
 	for _, item := range m.Items {
-		if !item.MeetsRequirements(matchedIDs) {
+		if !item.MeetsRequirements(answers) {
 			continue
 		}
 		nextItems = append(nextItems, item)
@@ -57,12 +78,12 @@ func (m *Model) AllItems(matchedIDs []string) []Item {
 // NextItems returns a list of items that can be answered next.
 //
 // If provided, the list of matched IDs are assumed to have been answered affirmatively or negatively, based on the "+" or "-" prefix.
-func (m *Model) NextItems(matchedIDs []string) []Item {
-	items := m.AllItems(matchedIDs)
+func (m *Model) NextItems(answers []string) []Item {
+	items := m.AllItems(answers)
 
 	nextItems := []Item{}
 	for _, item := range items {
-		if slices.Contains(matchedIDs, "+"+item.ID) || slices.Contains(matchedIDs, "-"+item.ID) {
+		if slices.Contains(answers, "+"+item.ID) || slices.Contains(answers, "-"+item.ID) {
 			continue
 		}
 
@@ -70,4 +91,19 @@ func (m *Model) NextItems(matchedIDs []string) []Item {
 	}
 
 	return nextItems
+}
+
+// CalculateScore calculates the score based on the given answers.
+func (m *Model) CalculateScore(answers []string) int {
+	score := 0
+	for _, category := range m.Categories {
+		categoryScore := 0
+		for _, categoryTier := range category.Tiers {
+			if categoryTier.MeetsRequirements(answers) {
+				categoryScore = categoryTier.Tier
+			}
+		}
+		score += categoryScore
+	}
+	return score
 }

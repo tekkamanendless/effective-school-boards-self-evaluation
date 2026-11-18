@@ -1,6 +1,7 @@
 package effectiveschoolboards
 
 import (
+	"cmp"
 	"context"
 	"encoding/csv"
 	"fmt"
@@ -13,8 +14,8 @@ import (
 
 func LoadModel() (*Model, error) {
 	model := &Model{
-		Items:           []Item{},
-		CategoryTierMap: map[string]map[int]int{},
+		Items:                  []Item{},
+		CategoryTierToIndexMap: map[string]map[int]int{},
 	}
 
 	file, err := FS.Open("model.csv")
@@ -41,7 +42,7 @@ func LoadModel() (*Model, error) {
 		headerNameToIndexMap[name] = index
 	}
 
-	categories := []string{
+	categoryNames := []string{
 		"Focus Mindset",
 		"Clarify Priorities 1",
 		"Clarify Priorities 2",
@@ -67,26 +68,26 @@ func LoadModel() (*Model, error) {
 			item.Tier = intValue
 		}
 
-		for _, category := range categories {
-			value := row[headerNameToIndexMap[strings.ToLower(strings.TrimSpace(category))]]
+		for _, categoryName := range categoryNames {
+			value := row[headerNameToIndexMap[strings.ToLower(strings.TrimSpace(categoryName))]]
 			if value != "" {
 				intValue, err := strconv.Atoi(value)
 				if err != nil {
 					return nil, fmt.Errorf("could not convert %s to int: %w", value, err)
 				}
-				item.CategoryScoreMap[category] = intValue
+				item.CategoryScoreMap[categoryName] = intValue
 			}
 		}
 
 		model.Items = append(model.Items, item)
 	}
 
-	for _, category := range categories {
-		model.CategoryTierMap[category] = map[int]int{}
+	for _, categoryName := range categoryNames {
+		model.CategoryTierToIndexMap[categoryName] = map[int]int{}
 
 		categoryScoreMap := map[int]bool{}
 		for _, item := range model.Items {
-			if score, ok := item.CategoryScoreMap[category]; ok {
+			if score, ok := item.CategoryScoreMap[categoryName]; ok {
 				categoryScoreMap[score] = true
 			}
 		}
@@ -94,17 +95,17 @@ func LoadModel() (*Model, error) {
 		slices.Sort(categoryScores)
 
 		for tierIndex, score := range categoryScores {
-			model.CategoryTierMap[category][score] = tierIndex
+			model.CategoryTierToIndexMap[categoryName][score] = tierIndex
 		}
 	}
 
-	findItemsInCategoryBelowTier := func(category string, tier int) []Item {
+	findItemsInCategoryBelowTier := func(categoryName string, tier int) []Item {
 		items := []Item{}
 		for _, item := range model.Items {
-			if _, ok := item.CategoryScoreMap[category]; !ok {
+			if _, ok := item.CategoryScoreMap[categoryName]; !ok {
 				continue
 			}
-			if item.CategoryScoreMap[category] < tier {
+			if item.CategoryScoreMap[categoryName] < tier {
 				items = append(items, item)
 			}
 		}
@@ -113,10 +114,10 @@ func LoadModel() (*Model, error) {
 
 	for itemIndex, item := range model.Items {
 		var requiredItemIDs []string
-		for category, score := range item.CategoryScoreMap {
-			requiredItems := findItemsInCategoryBelowTier(category, score)
+		for categoryName, score := range item.CategoryScoreMap {
+			requiredItems := findItemsInCategoryBelowTier(categoryName, score)
 			for _, requiredItem := range requiredItems {
-				if requiredItem.CategoryScoreMap[category] == 0 {
+				if requiredItem.CategoryScoreMap[categoryName] == 0 {
 					requiredItemIDs = append(requiredItemIDs, "-"+requiredItem.ID)
 				} else {
 					requiredItemIDs = append(requiredItemIDs, "+"+requiredItem.ID)
@@ -128,9 +129,54 @@ func LoadModel() (*Model, error) {
 		model.Items[itemIndex].RequiredItemIDs = requiredItemIDs
 	}
 
+	for categoryName, scoreToTierMap := range model.CategoryTierToIndexMap {
+		category := Category{
+			Name:  categoryName,
+			Tiers: []CategoryTier{},
+		}
+
+		for score := range scoreToTierMap {
+			var requiredItemIDs []string
+			for _, item := range model.Items {
+				if _, ok := item.CategoryScoreMap[categoryName]; !ok {
+					continue
+				}
+				if item.CategoryScoreMap[categoryName] <= score {
+					if item.CategoryScoreMap[categoryName] == 0 {
+						requiredItemIDs = append(requiredItemIDs, "-"+item.ID)
+					} else {
+						requiredItemIDs = append(requiredItemIDs, "+"+item.ID)
+					}
+				}
+			}
+			slices.Sort(requiredItemIDs)
+			requiredItemIDs = slices.Compact(requiredItemIDs)
+
+			categoryTier := CategoryTier{
+				Tier:            score,
+				RequiredItemIDs: requiredItemIDs,
+			}
+			category.Tiers = append(category.Tiers, categoryTier)
+		}
+		slices.SortFunc(category.Tiers, func(a, b CategoryTier) int {
+			return cmp.Compare(a.Tier, b.Tier)
+		})
+
+		model.Categories = append(model.Categories, category)
+	}
+	slices.SortFunc(model.Categories, func(a, b Category) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
+
 	slog.InfoContext(context.TODO(), "Model loaded.", "items", len(model.Items))
 	for _, item := range model.Items {
 		slog.InfoContext(context.TODO(), "Item.", "id", item.ID, "text", item.Text, "requiredItemIDs", item.RequiredItemIDs)
+	}
+	for _, category := range model.Categories {
+		slog.InfoContext(context.TODO(), "Category.", "name", category.Name)
+		for _, categoryTier := range category.Tiers {
+			slog.InfoContext(context.TODO(), "CategoryTier.", "tier", categoryTier.Tier, "requiredItemIDs", categoryTier.RequiredItemIDs)
+		}
 	}
 
 	return model, nil

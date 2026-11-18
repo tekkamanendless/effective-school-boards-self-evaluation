@@ -126,7 +126,7 @@ func main() {
 					},
 				},
 				{
-					Path: "/calls",
+					Path: "/survey",
 					Component: func() app.Composer {
 						return &demo.SurveyPage{}
 					},

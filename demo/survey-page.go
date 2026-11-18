@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ type SurveyPage struct {
 	model   *effectiveschoolboards.Model
 	items   []effectiveschoolboards.Item
 	answers []string
+	score   int
 }
 
 func (c *SurveyPage) OnMount(ctx app.Context) {
@@ -113,7 +115,8 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 		slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: Could not load model.", "err", err)
 	} else {
 		c.model = model
-		c.items = model.AllItems([]string{})
+		c.items = model.AllItems(c.answers)
+		c.addAnswer()
 	}
 }
 
@@ -199,6 +202,11 @@ func (c *SurveyPage) Render() app.UI {
 									Bad().
 									Text(c.errorMessage)
 							}),
+							app.Div().
+								Body(
+									app.Div().
+										Text("Score: " + strconv.Itoa(c.score)),
+								),
 							app.Div().
 								Body(
 									app.Range(c.items).Slice(func(i int) app.UI {
@@ -413,17 +421,20 @@ func (c *SurveyPage) logout(ctx app.Context) {
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Text("You have been logged out."))
 }
 
-func (c *SurveyPage) addAnswer(answer string) {
-	id := strings.TrimPrefix(answer, "+")
-	id = strings.TrimPrefix(id, "-")
+func (c *SurveyPage) addAnswer(answers ...string) {
+	for _, answer := range answers {
+		id := strings.TrimPrefix(answer, "+")
+		id = strings.TrimPrefix(id, "-")
 
-	c.answers = slices.DeleteFunc(c.answers, func(a string) bool {
-		return a == "+"+id || a == "-"+id
-	})
+		c.answers = slices.DeleteFunc(c.answers, func(a string) bool {
+			return a == "+"+id || a == "-"+id
+		})
 
-	c.answers = append(c.answers, answer)
+		c.answers = append(c.answers, answer)
+	}
 	slices.Sort(c.answers)
 	c.answers = slices.Compact(c.answers)
 
 	c.items = c.model.AllItems(c.answers)
+	c.score = c.model.CalculateScore(c.answers)
 }

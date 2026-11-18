@@ -28,7 +28,7 @@ func (c *TermsPage) Render() app.UI {
 				app.Text("It utilizes various Google APIs that may not work in the future; I'm not Google; I don't know."),
 			),
 			app.P().Body(
-				app.Text("Do not use this for anything other than its intended purpose (visualizing Google Voice logs)."),
+				app.Text("Do not use this for anything other than its intended purpose (performing a self-evaluation of your school board's effectiveness in implementing the Effective School Boards framework)."),
 			),
 		)
 }

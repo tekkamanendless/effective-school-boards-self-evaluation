@@ -23,7 +23,7 @@ func (c *PrivacyPage) Render() app.UI {
 	return blazar.Page().
 		Body(
 			app.H2().Text("Privacy Policy"),
-			app.Text("Last updated: 2026-10-21"),
+			app.Text("Last updated: 2026-11-18"),
 			app.P().Body(
 				app.Text("This a truly local web app; it consists of static files."),
 				app.Text(" "),
@@ -41,9 +41,7 @@ func (c *PrivacyPage) Render() app.UI {
 				app.Text(" "),
 				app.Text("We do not collect, store, or process any personal information, usage data, or device identifiers from visitors or users of this site outside of your browser's local storage."),
 				app.Text(" "),
-				app.Text("When granted access to your Google account, the application will access the your profile information (including your name and e-mail address) as well as your organization's Google Voice call data (including all source and destination information, call times, etc.)."),
-				app.Text(" "),
-				app.Text("This data is used to display the calls in a graphical view."),
+				app.Text("When granted access to your Google account, the application will access the your profile information (including your name and e-mail address) as well as a single Google Sheet into which a new row will be added."),
 			),
 			app.P().Body(
 				app.Text("This data will only be stored in your browser's local storage as part of the HTML local storage API."),

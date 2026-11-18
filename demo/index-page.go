@@ -24,46 +24,16 @@ func (c *IndexPage) OnNav(ctx app.Context) {
 func (c *IndexPage) Render() app.UI {
 	return blazar.Page().
 		Body(
-			app.P().Text("This tool uses the Google Admin API to show a graphical view of your organization's Google Voice calls."),
+			app.P().Text("This tool allows you to self-evaluate your school board's effectiveness in implementing the Effective School Boards framework."),
 			app.P().Body(
 				blazar.Button().
 					Style("font-size", "1.2em").
 					Style("padding", "0.5em").
-					To("/calls").
+					To("/survey").
 					Icon(tabler.IconFilledArrowBigRight).
 					Label("Get Started"),
 			),
 			app.Br(),
-			app.H2().Text("Google Workspace Setup"),
-			app.Div().Body(
-				app.P().Body(
-					app.Text("This works with the enterprise version of Google Voice; it will not work with a personal Google Voice account. "),
-					app.Text("This uses the Google Admin Reports API to query the list of call records and assembles them into a helpful format. "),
-					app.Text("This is the same information that you can find under "),
-					app.A().Href("https://admin.google.com/ac/sc/investigation?ref=reporting").Text("Reporting > Audit and Investigation"),
-					app.Text(". "),
-				),
-				app.P().Body(
-					app.Text("You'll need to use a Google Workspace account with the following permissions. "),
-					app.Text("You can create a new role with those permissions under "),
-					app.A().Href("https://admin.google.com/ac/list/roles").Text("Admin Roles"),
-					app.Text(". "),
-				),
-				app.Ol().Body(
-					app.Li().Body(
-						GoogleWorkspacePermission().
-							Required(true).
-							Parts("Security Center", "This user has full administrative rights for Security Center", "Audit and Investigation", "View", "Voice").
-							Description("This provides access to the Google Voice call records."),
-					),
-					app.Li().Body(
-						GoogleWorkspacePermission().
-							Required(false).
-							Parts("Directory Settings", "Read and update shared contacts from Domain Shared Contacts API").
-							Description("This provides access to the organization's shared contacts.  If this permission is not granted, then no contact names will be shown."),
-					),
-				),
-			),
 			app.H2().Text("Additional Information"),
 			app.Div().Body(
 				app.P().Body(
