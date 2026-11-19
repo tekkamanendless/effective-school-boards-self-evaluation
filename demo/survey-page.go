@@ -282,6 +282,12 @@ func (c *SurveyPage) Render() app.UI {
 												app.Text(c.pickedFileName),
 											),
 										blazar.Button().
+											Icon(tabler.IconOutlineDownload).
+											Label("Load Latest").
+											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+												c.loadLatest(ctx, c.fileID)
+											}),
+										blazar.Button().
 											Icon(tabler.IconOutlineDeviceFloppy).
 											Label("Save").
 											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
@@ -720,4 +726,119 @@ func (c *SurveyPage) saveFile(ctx app.Context, id string) {
 	}
 
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your responses have been saved."))
+}
+
+func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
+	slog.InfoContext(ctx.Context, "SurveyPage: loadLatest", "id", id)
+
+	err := func() error {
+		tokenSource := oauth2.StaticTokenSource(c.userToken)
+		sheetsService, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
+		if err != nil {
+			return fmt.Errorf("error creating sheets service: %w", err)
+		}
+
+		// Get the header row.
+		valueRange, err := sheetsService.Spreadsheets.Values.Get(id, "A1:ZZ10000").Do()
+		if err != nil {
+			return fmt.Errorf("error getting value range: %w", err)
+		}
+		slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: value range.", "valueRange", valueRange)
+		slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: value range values.", "values", valueRange.Values)
+
+		if len(valueRange.Values) == 0 {
+			return fmt.Errorf("no header row present")
+		}
+
+		header := []string{}
+		for _, cell := range valueRange.Values[0] {
+			header = append(header, fmt.Sprintf("%v", cell))
+		}
+		rows := [][]string{}
+		for _, rawRow := range valueRange.Values[1:] {
+			row := []string{}
+			for _, cell := range rawRow {
+				row = append(row, fmt.Sprintf("%v", cell))
+			}
+			for len(row) < len(header) {
+				row = append(row, "")
+			}
+			rows = append(rows, row)
+		}
+		//slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: Rows.", "rows", rows)
+
+		headerNameToIndexMap := map[string]int{}
+		for index, name := range header {
+			headerNameToIndexMap[name] = index
+		}
+
+		newRow := make([]any, len(header))
+		if index, ok := headerNameToIndexMap["date"]; ok {
+			newRow[index] = time.Now().Format("2006-01-02")
+		} else {
+			return fmt.Errorf("header not present: date")
+		}
+		if index, ok := headerNameToIndexMap["email"]; ok {
+			newRow[index] = c.userInfo.Email
+		} else {
+			return fmt.Errorf("header not present: email")
+		}
+		for _, item := range c.answers {
+			value := ""
+			var itemID string
+			if strings.HasPrefix(item, "+") {
+				value = "1"
+				itemID = strings.TrimPrefix(item, "+")
+			} else if strings.HasPrefix(item, "-") {
+				value = "0"
+				itemID = strings.TrimPrefix(item, "-")
+			}
+
+			if index, ok := headerNameToIndexMap[itemID]; ok {
+				newRow[index] = value
+			} else {
+				return fmt.Errorf("header not present: %s", itemID)
+			}
+		}
+
+		validItemIDMap := map[string]bool{}
+		for _, item := range c.model.Items {
+			validItemIDMap[item.ID] = true
+		}
+
+		var answers []string
+		for _, row := range rows {
+			rowEmail := row[headerNameToIndexMap["email"]]
+			//slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: Row email.", "rowEmail", rowEmail)
+			if rowEmail != c.userInfo.Email {
+				continue
+			}
+			slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: Valid row.", "row", row)
+
+			answers = []string{}
+			for _, name := range header {
+				if !validItemIDMap[name] {
+					continue
+				}
+
+				switch row[headerNameToIndexMap[name]] {
+				case "1":
+					answers = append(answers, "+"+name)
+				case "0":
+					answers = append(answers, "-"+name)
+				}
+			}
+		}
+
+		c.answers = answers
+
+		return nil
+	}()
+	if err != nil {
+		slog.ErrorContext(ctx.Context, "SurveyPage: loadLatest: error.", "err", err)
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
+		return
+	}
+
+	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response has been loaded."))
 }
