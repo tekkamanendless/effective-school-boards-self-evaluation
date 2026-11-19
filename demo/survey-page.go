@@ -21,6 +21,7 @@ import (
 	"google.golang.org/api/googleapi"
 	googleoauth2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
+	"google.golang.org/api/sheets/v4"
 )
 
 type SurveyPage struct {
@@ -37,10 +38,13 @@ type SurveyPage struct {
 	loggedIn  bool // This will be true when the user is logged in.
 	loggingIn bool // This will be true when the user is logging in.
 
-	model   *effectiveschoolboards.Model
-	items   []effectiveschoolboards.Item
-	answers []string
-	score   int
+	model          *effectiveschoolboards.Model
+	items          []effectiveschoolboards.Item
+	answers        []string
+	score          int
+	fileID         string
+	pickedFile     bool // This is true when the user has picked a file.
+	pickedFileName string
 }
 
 func (c *SurveyPage) OnMount(ctx app.Context) {
@@ -51,6 +55,7 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 	c.loggingIn = false
 
 	ctx.GetState("answers", &c.answers)
+	ctx.GetState("file-id", &c.fileID)
 
 	model, err := effectiveschoolboards.LoadModel()
 	if err != nil {
@@ -248,6 +253,14 @@ func (c *SurveyPage) Render() app.UI {
 							}),
 							app.Div().
 								Body(
+									app.Div().
+										Body(
+											app.Text("In order to save your responses, you need to pick a file to save them to."),
+											app.Text(" "),
+											app.Text("If you provide an empty spreadsheet, then it will be populated with a header row and can be used for subsequent responses."),
+											app.Text(" "),
+											app.Text("If you provide a spreadsheet without the proper header row, then it will not be used."),
+										),
 									blazar.Button().
 										Icon(tabler.IconOutlineFileSpreadsheet).
 										Label("Pick file").
@@ -255,6 +268,27 @@ func (c *SurveyPage) Render() app.UI {
 											c.pickFile(ctx)
 										}),
 								),
+							app.If(c.pickedFile, func() app.UI {
+								return blazar.Card().
+									Body(
+										app.Div().
+											Style("display", "flex").
+											Style("flex-direction", "row").
+											Style("gap", "0.5em").
+											Style("align-items", "center").
+											Body(
+												blazar.Icon().
+													Icon(tabler.IconOutlineFileSpreadsheet),
+												app.Text(c.pickedFileName),
+											),
+										blazar.Button().
+											Icon(tabler.IconOutlineDeviceFloppy).
+											Label("Save").
+											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+												c.saveFile(ctx, c.fileID)
+											}),
+									)
+							}),
 							app.Div().
 								Body(
 									blazar.Button().
@@ -482,6 +516,9 @@ func (c *SurveyPage) logout(ctx app.Context) {
 	c.loggedIn = false
 	c.loggingIn = false
 
+	c.pickedFile = false
+	c.pickedFileName = ""
+
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Text("You have been logged out."))
 }
 
@@ -526,6 +563,12 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 	jsPickerBuilder.Call("setOAuthToken", c.userToken.AccessToken)
 	jsPickerBuilder.Call("setDeveloperKey", "AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
 	jsPickerBuilder.Call("setAppId", "ddm-personal")
+	if c.fileID != "" {
+		jsDocsView := app.Window().Get("google").Get("picker").Get("DocsView").New()
+		jsDocsView.Call("setFileIds", []any{c.fileID})
+
+		jsPickerBuilder.Call("addView", jsDocsView)
+	}
 	jsPickerBuilder.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
 		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "args", args)
 		if len(args) < 1 {
@@ -558,6 +601,13 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 				jsDoc := args[0]
 
 				slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "id", jsDoc.Get("id").String(), "url", jsDoc.Get("url").String(), "name", jsDoc.Get("name").String())
+				ctx.Dispatch(func(ctx app.Context) {
+					c.fileID = jsDoc.Get("id").String()
+					ctx.SetState("file-id", c.fileID).Persist()
+
+					c.pickedFile = true
+					c.pickedFileName = jsDoc.Get("name").String()
+				})
 
 				return nil
 			}))
@@ -567,4 +617,107 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 	}))
 	jsPicker := jsPickerBuilder.Call("build")
 	jsPicker.Call("setVisible", true)
+}
+
+func (c *SurveyPage) saveFile(ctx app.Context, id string) {
+	slog.InfoContext(ctx.Context, "SurveyPage: saveFile", "id", id)
+
+	err := func() error {
+		tokenSource := oauth2.StaticTokenSource(c.userToken)
+		sheetsService, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
+		if err != nil {
+			return fmt.Errorf("error creating sheets service: %w", err)
+		}
+
+		// Test for a header and create one if there isn't one.
+		{
+			valueRange, err := sheetsService.Spreadsheets.Values.Get(id, "1:1").Do()
+			if err != nil {
+				return fmt.Errorf("error getting value range: %w", err)
+			}
+			slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range.", "valueRange", valueRange)
+
+			slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range values.", "values", valueRange.Values)
+			if len(valueRange.Values) == 0 {
+				slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range values is empty.")
+
+				headerRow := []any{"date", "email"}
+				for _, item := range c.model.Items {
+					headerRow = append(headerRow, item.ID)
+				}
+
+				response, err := sheetsService.Spreadsheets.Values.Append(id, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{headerRow}}).ValueInputOption("RAW").Do()
+				if err != nil {
+					return fmt.Errorf("error appending initial header: %w", err)
+				}
+				slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range appended.", "response", response)
+			}
+		}
+
+		// Get the header row.
+		valueRange, err := sheetsService.Spreadsheets.Values.Get(id, "1:1").Do()
+		if err != nil {
+			return fmt.Errorf("error getting value range: %w", err)
+		}
+		slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range.", "valueRange", valueRange)
+		slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range values.", "values", valueRange.Values)
+
+		if len(valueRange.Values) == 0 {
+			return fmt.Errorf("no header row present")
+		}
+
+		header := []string{}
+		for _, cell := range valueRange.Values[0] {
+			header = append(header, fmt.Sprintf("%v", cell))
+		}
+
+		headerNameToIndexMap := map[string]int{}
+		for index, name := range header {
+			headerNameToIndexMap[name] = index
+		}
+
+		newRow := make([]any, len(header))
+		if index, ok := headerNameToIndexMap["date"]; ok {
+			newRow[index] = time.Now().Format("2006-01-02")
+		} else {
+			return fmt.Errorf("header not present: date")
+		}
+		if index, ok := headerNameToIndexMap["email"]; ok {
+			newRow[index] = c.userInfo.Email
+		} else {
+			return fmt.Errorf("header not present: email")
+		}
+		for _, item := range c.answers {
+			value := ""
+			var itemID string
+			if strings.HasPrefix(item, "+") {
+				value = "1"
+				itemID = strings.TrimPrefix(item, "+")
+			} else if strings.HasPrefix(item, "-") {
+				value = "0"
+				itemID = strings.TrimPrefix(item, "-")
+			}
+
+			if index, ok := headerNameToIndexMap[itemID]; ok {
+				newRow[index] = value
+			} else {
+				return fmt.Errorf("header not present: %s", itemID)
+			}
+		}
+
+		response, err := sheetsService.Spreadsheets.Values.Append(id, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{newRow}}).ValueInputOption("RAW").Do()
+		if err != nil {
+			return fmt.Errorf("error appending value range: %w", err)
+		}
+		slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range appended.", "response", response)
+
+		return nil
+	}()
+	if err != nil {
+		slog.ErrorContext(ctx.Context, "SurveyPage: saveFile: error.", "err", err)
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error saving file: "+err.Error()))
+		return
+	}
+
+	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your responses have been saved."))
 }
