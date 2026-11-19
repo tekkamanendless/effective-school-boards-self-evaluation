@@ -12,10 +12,10 @@ import (
 
 	"github.com/go-app-blazar/blazar/blazar"
 	"github.com/go-app-blazar/blazar/htmlevent"
+	"github.com/go-app-blazar/googleoauthjs"
 	"github.com/go-app-blazar/tabler-font"
 	"github.com/maxence-charriere/go-app/v11/pkg/app"
 	"github.com/tekkamanendless/effective-school-boards-self-evaluation/effectiveschoolboards"
-	"github.com/tekkamanendless/effective-school-boards-self-evaluation/googleoauthjs"
 	"golang.org/x/oauth2"
 	admin "google.golang.org/api/admin/reports/v1"
 	"google.golang.org/api/googleapi"
