@@ -152,6 +152,7 @@ func main() {
 		Description: "Effective School Boards Self Evaluation",
 		Title:       "Effective School Boards Self Evaluation",
 		Scripts: []string{
+			"https://apis.google.com/js/api.js",
 			"https://accounts.google.com/gsi/client",
 		},
 		RawHeaders: []string{

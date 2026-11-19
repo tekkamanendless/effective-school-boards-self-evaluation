@@ -52,6 +52,15 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 
 	ctx.GetState("answers", &c.answers)
 
+	model, err := effectiveschoolboards.LoadModel()
+	if err != nil {
+		slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: Could not load model.", "err", err)
+	} else {
+		c.model = model
+		c.items = model.AllItems(c.answers)
+		c.addAnswer(ctx)
+	}
+
 	ctx.Handle("SurveyPage.login", c.login)
 
 	{
@@ -112,14 +121,7 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 		ctx.Update()
 	})
 
-	model, err := effectiveschoolboards.LoadModel()
-	if err != nil {
-		slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: Could not load model.", "err", err)
-	} else {
-		c.model = model
-		c.items = model.AllItems(c.answers)
-		c.addAnswer(ctx)
-	}
+	app.Window().Get("gapi").Call("load", "picker" /*, onPickerApiLoad*/)
 }
 
 func (c *SurveyPage) OnNav(ctx app.Context) {
@@ -244,6 +246,26 @@ func (c *SurveyPage) Render() app.UI {
 									Bad().
 									Text(c.errorMessage)
 							}),
+							app.Div().
+								Body(
+									blazar.Button().
+										Icon(tabler.IconOutlineFileSpreadsheet).
+										Label("Pick file").
+										OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+											c.pickFile(ctx)
+										}),
+								),
+							app.Div().
+								Body(
+									blazar.Button().
+										Icon(tabler.IconOutlineTrash).
+										Label("Reset").
+										OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+											c.resetAnswers(ctx)
+
+											ctx.Update()
+										}),
+								),
 							app.Div().
 								Body(
 									app.Div().
@@ -463,6 +485,18 @@ func (c *SurveyPage) logout(ctx app.Context) {
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Text("You have been logged out."))
 }
 
+// resetAnswers resets the answers to the default answers.
+//
+// The answers will be saved in local storage.
+func (c *SurveyPage) resetAnswers(ctx app.Context) {
+	c.answers = []string{}
+
+	c.addAnswer(ctx)
+}
+
+// addAnswer adds an answer to the answers.
+//
+// The answers will be saved in local storage.
 func (c *SurveyPage) addAnswer(ctx app.Context, answers ...string) {
 	for _, answer := range answers {
 		id := strings.TrimPrefix(answer, "+")
@@ -481,4 +515,56 @@ func (c *SurveyPage) addAnswer(ctx app.Context, answers ...string) {
 	c.score = c.model.CalculateScore(c.answers)
 
 	ctx.SetState("answers", c.answers).Persist()
+}
+
+// pickFile picks a file from the user's Google Drive.
+func (c *SurveyPage) pickFile(ctx app.Context) {
+	slog.InfoContext(ctx.Context, "SurveyPage: pickFile")
+
+	jsPickerBuilder := app.Window().Get("google").Get("picker").Get("PickerBuilder").New()
+	jsPickerBuilder.Call("addView", app.Window().Get("google").Get("picker").Get("ViewId").Get("SPREADSHEETS"))
+	jsPickerBuilder.Call("setOAuthToken", c.userToken.AccessToken)
+	jsPickerBuilder.Call("setDeveloperKey", "AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
+	jsPickerBuilder.Call("setAppId", "ddm-personal")
+	jsPickerBuilder.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
+		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "args", args)
+		if len(args) < 1 {
+			slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: picker callback: no data.")
+			return nil
+		}
+
+		jsData := args[0]
+		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: data.", "data", jsData)
+
+		app.Window().Get("console").Call("log", jsData)
+
+		var keys []string
+		app.Window().Get("Object").Call("keys", jsData).Call("forEach", app.FuncOf(func(this app.Value, args []app.Value) any {
+			keys = append(keys, args[0].String())
+			return nil
+		}))
+		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: keys.", "keys", keys)
+
+		if slices.Contains(keys, "docs") {
+			jsDocs := jsData.Get("docs")
+			if !app.Window().Get("Array").Call("isArray", jsDocs).Bool() {
+				slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: picker callback: docs is not an array")
+				return nil
+			}
+
+			jsDocsArray := app.Window().Get("Array").Call("from", jsDocs)
+			jsDocsArray.Call("forEach", app.FuncOf(func(this app.Value, args []app.Value) any {
+				slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "doc", args[0])
+				jsDoc := args[0]
+
+				slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "id", jsDoc.Get("id").String(), "url", jsDoc.Get("url").String(), "name", jsDoc.Get("name").String())
+
+				return nil
+			}))
+		}
+
+		return nil
+	}))
+	jsPicker := jsPickerBuilder.Call("build")
+	jsPicker.Call("setVisible", true)
 }
