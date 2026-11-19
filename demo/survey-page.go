@@ -50,6 +50,8 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 	c.loggedIn = false
 	c.loggingIn = false
 
+	ctx.GetState("answers", &c.answers)
+
 	ctx.Handle("SurveyPage.login", c.login)
 
 	{
@@ -116,7 +118,7 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 	} else {
 		c.model = model
 		c.items = model.AllItems(c.answers)
-		c.addAnswer()
+		c.addAnswer(ctx)
 	}
 }
 
@@ -268,7 +270,7 @@ func (c *SurveyPage) Render() app.UI {
 																itemID := e.Target.Call("closest", "[data-id]").Get("dataset").Get("id").String()
 																slog.InfoContext(ctx.Context, "SurveyPage: Render: OnClick(False): itemID", "itemID", itemID)
 
-																c.addAnswer("-" + itemID)
+																c.addAnswer(ctx, "-"+itemID)
 
 																ctx.Update()
 															}),
@@ -279,7 +281,7 @@ func (c *SurveyPage) Render() app.UI {
 																itemID := e.Target.Call("closest", "[data-id]").Get("dataset").Get("id").String()
 																slog.InfoContext(ctx.Context, "SurveyPage: Render: OnClick(True): itemID", "itemID", itemID)
 
-																c.addAnswer("+" + itemID)
+																c.addAnswer(ctx, "+"+itemID)
 
 																ctx.Update()
 															}),
@@ -461,7 +463,7 @@ func (c *SurveyPage) logout(ctx app.Context) {
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Text("You have been logged out."))
 }
 
-func (c *SurveyPage) addAnswer(answers ...string) {
+func (c *SurveyPage) addAnswer(ctx app.Context, answers ...string) {
 	for _, answer := range answers {
 		id := strings.TrimPrefix(answer, "+")
 		id = strings.TrimPrefix(id, "-")
@@ -477,4 +479,6 @@ func (c *SurveyPage) addAnswer(answers ...string) {
 
 	c.items = c.model.AllItems(c.answers)
 	c.score = c.model.CalculateScore(c.answers)
+
+	ctx.SetState("answers", c.answers).Persist()
 }
