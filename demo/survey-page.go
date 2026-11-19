@@ -127,6 +127,46 @@ func (c *SurveyPage) OnNav(ctx app.Context) {
 func (c *SurveyPage) Render() app.UI {
 	slog.InfoContext(context.TODO(), "SurveyPage: Render: ready", "ready", c.ready, "loggingIn", c.loggingIn, "loggedIn", c.loggedIn)
 
+	formatItemText := func(text string) []app.UI {
+		boldWords := []string{
+			"but not",
+			"did not",
+			"conflict of interest",
+			"does not",
+			"has not",
+			"have not",
+			"previous thirty-six month period",
+			"previous twelve month period",
+			"without approval",
+		}
+
+		for _, word := range boldWords {
+			text = strings.ReplaceAll(text, word, "<b>"+word+"</b>")
+		}
+
+		var output []app.UI
+		for len(text) > 0 {
+			index := strings.Index(text, "<b>")
+			if index == -1 {
+				output = append(output, app.Text(text))
+				break
+			}
+
+			output = append(output, app.Text(text[:index]))
+			text = text[index+len("<b>"):]
+
+			index = strings.Index(text, "</b>")
+			if index == -1 {
+				output = append(output, app.B().Text(text))
+				break
+			}
+			output = append(output, app.B().Text(text[:index]))
+			text = text[index+len("</b>"):]
+		}
+
+		return output
+	}
+
 	return blazar.Page().
 		Body(
 			blazar.Snackbar().
@@ -218,7 +258,7 @@ func (c *SurveyPage) Render() app.UI {
 											Body(
 												app.Div().
 													Class("item-text").
-													Text(item.Text),
+													Body(formatItemText(item.Text)...),
 												app.Div().
 													Body(
 														blazar.Button().
