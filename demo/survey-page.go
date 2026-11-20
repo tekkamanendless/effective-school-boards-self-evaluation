@@ -613,6 +613,7 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 	jsPickerBuilder.Call("setAppId", "ddm-personal")
 	if c.fileID != "" {
 		jsDocsView := app.Window().Get("google").Get("picker").Get("DocsView").New()
+		jsDocsView.Call("setEnableDrives", true)
 		jsDocsView.Call("setFileIds", []any{c.fileID})
 
 		jsPickerBuilder.Call("addView", jsDocsView)
