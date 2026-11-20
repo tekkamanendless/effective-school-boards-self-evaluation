@@ -872,7 +872,8 @@ func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
 			}
 		}
 
-		c.answers = answers
+		c.answers = []string{}
+		c.addAnswer(ctx, answers...)
 
 		return nil
 	}()
