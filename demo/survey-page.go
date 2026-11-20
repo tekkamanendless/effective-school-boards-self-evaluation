@@ -338,20 +338,27 @@ func (c *SurveyPage) Render() app.UI {
 									)
 							}),
 							app.Div().
+								Style("display", "flex").
+								Style("flex-direction", "row").
+								Style("gap", "1em").
+								Style("align-items", "center").
 								Body(
+									app.Div().
+										Style("font-size", "1.2em").
+										Style("font-weight", "bold").
+										Body(
+											app.Text("Score: "+strconv.Itoa(c.score)+"%"),
+										),
+									app.Div().
+										Style("flex", "1"),
 									blazar.Button().
 										Icon(tabler.IconOutlineTrash).
-										Label("Reset").
+										Label("Reset Responses").
 										OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
 											c.resetAnswers(ctx)
 
 											ctx.Update()
 										}),
-								),
-							app.Div().
-								Body(
-									app.Div().
-										Text("Score: " + strconv.Itoa(c.score)),
 								),
 							app.Div().
 								Body(
@@ -607,17 +614,18 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 	slog.InfoContext(ctx.Context, "SurveyPage: pickFile")
 
 	jsPickerBuilder := app.Window().Get("google").Get("picker").Get("PickerBuilder").New()
-	jsPickerBuilder.Call("addView", app.Window().Get("google").Get("picker").Get("ViewId").Get("SPREADSHEETS"))
 	jsPickerBuilder.Call("setOAuthToken", c.userToken.AccessToken)
 	jsPickerBuilder.Call("setDeveloperKey", "AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
 	jsPickerBuilder.Call("setAppId", "ddm-personal")
 	if c.fileID != "" {
 		jsDocsView := app.Window().Get("google").Get("picker").Get("DocsView").New()
-		jsDocsView.Call("setEnableDrives", true)
-		jsDocsView.Call("setFileIds", []any{c.fileID})
+		//jsDocsView.Call("setEnableDrives", true)
+		jsDocsView.Call("setFileIds", c.fileID)
+		jsDocsView.Call("setLabel", "Preferred File")
 
 		jsPickerBuilder.Call("addView", jsDocsView)
 	}
+	jsPickerBuilder.Call("addView", app.Window().Get("google").Get("picker").Get("ViewId").Get("SPREADSHEETS"))
 	jsPickerBuilder.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
 		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "args", args)
 		if len(args) < 1 {
