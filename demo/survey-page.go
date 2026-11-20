@@ -881,6 +881,10 @@ func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
 			}
 		}
 
+		if answers == nil {
+			return fmt.Errorf("no previous responses found")
+		}
+
 		c.answers = []string{}
 		c.addAnswer(ctx, answers...)
 
