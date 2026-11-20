@@ -6,20 +6,37 @@ h1, h2, h3, h4, h5, h6 {
 .item {
   padding: 0.5em;
   margin-bottom: 0.5em;
+  border-radius: 0.5em;
 
   &[data-id^="z"] {
     background-color: #f5cbcc;
+
+    .blazar-button {
+      --color: color-mix(in oklab, #f5cbcc, black 20%);
+    }
   }
 
   &[data-id^="fa"], &[data-id^="pa"], &[data-id^="pd"], &[data-id^="ma"], &[data-id^="ra"], &[data-id^="ca"] {
     background-color: #fce5cd;
+
+    .blazar-button {
+      --color: color-mix(in oklab, #fce5cd, black 20%);
+    }
   }
 
   &[data-id^="fb"], &[data-id^="pb"], &[data-id^="pe"], &[data-id^="mb"], &[data-id^="rb"], &[data-id^="cb"] {
     background-color: #d9ead3;
+
+    .blazar-button {
+      --color: color-mix(in oklab, #d9ead3, black 20%);
+    }
   }
 
   &[data-id^="fc"], &[data-id^="pc"], &[data-id^="pf"], &[data-id^="mc"], &[data-id^="rc"], &[data-id^="cc"] {
     background-color: #d0e2f3;
+
+    .blazar-button {
+      --color: color-mix(in oklab, #d0e2f3, black 20%);
+    }
   }
 }

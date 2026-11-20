@@ -337,71 +337,71 @@ func (c *SurveyPage) Render() app.UI {
 											}),
 									)
 							}),
-							app.Div().
-								Style("display", "flex").
-								Style("flex-direction", "row").
-								Style("gap", "1em").
-								Style("align-items", "center").
-								Body(
-									app.Div().
-										Style("font-size", "1.2em").
-										Style("font-weight", "bold").
-										Body(
-											app.Text("Score: "+strconv.Itoa(c.score)+"%"),
-										),
-									app.Div().
-										Style("flex", "1"),
-									blazar.Button().
-										Icon(tabler.IconOutlineTrash).
-										Label("Reset Responses").
-										OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
-											c.resetAnswers(ctx)
-
-											ctx.Update()
-										}),
-								),
-							app.Div().
-								Body(
-									app.Range(c.items).Slice(func(i int) app.UI {
-										item := c.items[i]
-
-										return app.Div().
-											Class("item").
-											DataSet("id", item.ID).
-											Body(
-												app.Div().
-													Class("item-text").
-													Body(formatItemText(item.Text)...),
-												app.Div().
-													Body(
-														blazar.Button().
-															Outline(!slices.Contains(c.answers, "-"+item.ID)).
-															Label("False").
-															OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
-																itemID := e.Target.Call("closest", "[data-id]").Get("dataset").Get("id").String()
-																slog.InfoContext(ctx.Context, "SurveyPage: Render: OnClick(False): itemID", "itemID", itemID)
-
-																c.addAnswer(ctx, "-"+itemID)
-
-																ctx.Update()
-															}),
-														blazar.Button().
-															Outline(!slices.Contains(c.answers, "+"+item.ID)).
-															Label("True").
-															OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
-																itemID := e.Target.Call("closest", "[data-id]").Get("dataset").Get("id").String()
-																slog.InfoContext(ctx.Context, "SurveyPage: Render: OnClick(True): itemID", "itemID", itemID)
-
-																c.addAnswer(ctx, "+"+itemID)
-
-																ctx.Update()
-															}),
-													),
-											)
-									}),
-								),
 						}
 					}),
+					app.Div().
+						Style("display", "flex").
+						Style("flex-direction", "row").
+						Style("gap", "1em").
+						Style("align-items", "center").
+						Body(
+							app.Div().
+								Style("font-size", "1.2em").
+								Style("font-weight", "bold").
+								Body(
+									app.Text("Score: "+strconv.Itoa(c.score)+"%"),
+								),
+							app.Div().
+								Style("flex", "1"),
+							blazar.Button().
+								Icon(tabler.IconOutlineTrash).
+								Label("Reset Responses").
+								OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+									c.resetAnswers(ctx)
+
+									ctx.Update()
+								}),
+						),
+					app.Div().
+						Body(
+							app.Range(c.items).Slice(func(i int) app.UI {
+								item := c.items[i]
+
+								return app.Div().
+									Class("item").
+									DataSet("id", item.ID).
+									Body(
+										app.Div().
+											Class("item-text").
+											Body(formatItemText(item.Text)...),
+										app.Div().
+											Body(
+												blazar.Button().
+													Outline(!slices.Contains(c.answers, "-"+item.ID)).
+													Label("False").
+													OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+														itemID := e.Target.Call("closest", "[data-id]").Get("dataset").Get("id").String()
+														slog.InfoContext(ctx.Context, "SurveyPage: Render: OnClick(False): itemID", "itemID", itemID)
+
+														c.addAnswer(ctx, "-"+itemID)
+
+														ctx.Update()
+													}),
+												blazar.Button().
+													Outline(!slices.Contains(c.answers, "+"+item.ID)).
+													Label("True").
+													OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+														itemID := e.Target.Call("closest", "[data-id]").Get("dataset").Get("id").String()
+														slog.InfoContext(ctx.Context, "SurveyPage: Render: OnClick(True): itemID", "itemID", itemID)
+
+														c.addAnswer(ctx, "+"+itemID)
+
+														ctx.Update()
+													}),
+											),
+									)
+							}),
+						),
 				}
 			}),
 		)
