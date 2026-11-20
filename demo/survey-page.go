@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -131,6 +132,29 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 
 func (c *SurveyPage) OnNav(ctx app.Context) {
 	slog.InfoContext(ctx.Context, "SurveyPage: OnNav")
+
+	href := app.Window().Get("location").Get("href").String()
+	slog.InfoContext(ctx.Context, "SurveyPage: OnNav: href.", "href", href)
+
+	hrefURL, err := url.Parse(href)
+	if err != nil {
+		slog.ErrorContext(ctx.Context, "SurveyPage: OnNav: error parsing href.", "err", err)
+		return
+	}
+
+	if value := hrefURL.Query().Get("file-id"); value != "" {
+		slog.InfoContext(ctx.Context, "SurveyPage: OnNav: file-id found.", "file-id", value)
+
+		c.fileID = value
+		ctx.SetState("file-id", c.fileID).Persist()
+
+		newQuery := hrefURL.Query()
+		newQuery.Del("file-id")
+		hrefURL.RawQuery = newQuery.Encode()
+		newHref := hrefURL.String()
+		slog.InfoContext(ctx.Context, "SurveyPage: OnNav: new href.", "newHref", newHref)
+		app.Window().Get("location").Set("href", newHref)
+	}
 }
 
 func (c *SurveyPage) Render() app.UI {
@@ -280,16 +304,34 @@ func (c *SurveyPage) Render() app.UI {
 												blazar.Icon().
 													Icon(tabler.IconOutlineFileSpreadsheet),
 												app.Text(c.pickedFileName),
+												app.Span().
+													Style("flex", "1"),
+												blazar.Copy().
+													Icon(tabler.IconOutlineShare).
+													Value(func() string {
+														href := app.Window().Get("location").Get("href").String()
+														hrefURL, err := url.Parse(href)
+														if err != nil {
+															return ""
+														}
+														newQuery := hrefURL.Query()
+														newQuery.Set("file-id", c.fileID)
+														hrefURL.RawQuery = newQuery.Encode()
+														return hrefURL.String()
+													}()).
+													OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+														blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Text("Link copied to clipboard."))
+													}),
 											),
 										blazar.Button().
 											Icon(tabler.IconOutlineDownload).
-											Label("Load Latest").
+											Label("Load Latest Responses").
 											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
 												c.loadLatest(ctx, c.fileID)
 											}),
 										blazar.Button().
 											Icon(tabler.IconOutlineDeviceFloppy).
-											Label("Save").
+											Label("Save Current Responses").
 											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
 												c.saveFile(ctx, c.fileID)
 											}),
