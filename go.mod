@@ -11,6 +11,7 @@ require (
 	github.com/lmittmann/tint v1.1.3
 	github.com/mattn/go-isatty v0.0.22
 	github.com/maxence-charriere/go-app/v11 v11.1.5
+	github.com/stretchr/testify v1.12.1
 	golang.org/x/oauth2 v0.38.0
 	google.golang.org/api v0.316.0
 )
@@ -34,6 +35,7 @@ require (
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
