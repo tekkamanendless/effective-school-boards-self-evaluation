@@ -15,7 +15,7 @@ type Unmarshaler interface {
 
 // Unmarshal an app.Value into the target struct.
 func Unmarshal(appValue app.Value, target any) error {
-	slog.Debug("Parse: Parsing javascript value", "appValue", appValue, "target", target, "targetType", fmt.Sprintf("%T", target))
+	slog.Debug("Unmarshal: Parsing javascript value", "appValue", appValue, "target", target, "targetType", fmt.Sprintf("%T", target))
 
 	targetValue := reflect.ValueOf(target)
 	if targetValue.Kind() != reflect.Pointer {
@@ -27,35 +27,45 @@ func Unmarshal(appValue app.Value, target any) error {
 }
 
 func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
+	slog.Debug("parseValue: Parsing javascript value", "javascriptValue", javascriptValue, "targetType", targetValue.Type().String())
+
+	if targetValue.Kind() != reflect.Pointer && targetValue.CanAddr() {
+		if targetValue.Addr().Type().Implements(reflect.TypeFor[Unmarshaler]()) {
+			slog.Debug("parseValue: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+
+			return targetValue.Addr().Interface().(Unmarshaler).UnmarshalJavascript(javascriptValue)
+		}
+	}
+
 	if targetValue.Type().Implements(reflect.TypeFor[Unmarshaler]()) {
-		slog.Debug("Parse: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		slog.Debug("parseValue: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
 
 		return targetValue.Interface().(Unmarshaler).UnmarshalJavascript(javascriptValue)
 	}
 
 	// If the field is an app.Value, we can just set it directly.
 	if targetValue.Type().Implements(reflect.TypeFor[app.Value]()) {
-		slog.Debug("Parse: Setting javascript value directly.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		slog.Debug("parseValue: Setting javascript value directly.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
 
 		targetValue.Set(reflect.ValueOf(javascriptValue))
 		return nil
 	}
 
-	slog.Debug("Parse: javascriptValue.", "type", javascriptValue.Type())
+	slog.Debug("parseValue: javascriptValue.", "type", javascriptValue.Type())
 
 	// If the value is null, we can just skip it.
 	if javascriptValue.IsNull() {
-		slog.Debug("Parse: Skipping null javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		slog.Debug("parseValue: Skipping null javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
 
 		return nil
 	}
 	if javascriptValue.IsUndefined() {
-		slog.Debug("Parse: Skipping undefined javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		slog.Debug("parseValue: Skipping undefined javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
 
 		return nil
 	}
 
-	slog.Debug("Parse: targetValue.", "kind", targetValue.Kind())
+	slog.Debug("parseValue: targetValue.", "kind", targetValue.Kind())
 
 	switch targetValue.Kind() {
 	case reflect.String:
@@ -92,10 +102,10 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 			}
 
 			javascriptPropertyName := javascriptTag
-			slog.Debug("Parse: Getting javascript property.", "javascriptPropertyName", javascriptPropertyName)
+			slog.Debug("parseValue: Getting javascript property.", "javascriptPropertyName", javascriptPropertyName)
 
 			if javascriptPropertyName == "-" {
-				slog.Debug("Parse: Skipping field.", "field", field)
+				slog.Debug("parseValue: Skipping field.", "field", field)
 				continue
 			}
 
@@ -103,11 +113,11 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 
 			fieldValue := targetValue.FieldByName(field.Name)
 			if !fieldValue.IsValid() {
-				slog.Debug("Parse: Field is not valid.", "field", field)
+				slog.Debug("parseValue: Field is not valid.", "field", field)
 				continue
 			}
 			if !fieldValue.CanSet() {
-				slog.Debug("Parse: Field is not settable.", "field", field)
+				slog.Debug("parseValue: Field is not settable.", "field", field)
 				continue
 			}
 
