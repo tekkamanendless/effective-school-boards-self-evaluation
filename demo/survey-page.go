@@ -17,6 +17,7 @@ import (
 	"github.com/go-app-blazar/tabler-font"
 	"github.com/maxence-charriere/go-app/v11/pkg/app"
 	"github.com/tekkamanendless/effective-school-boards-self-evaluation/effectiveschoolboards"
+	"github.com/tekkamanendless/effective-school-boards-self-evaluation/googlepickerjs"
 	"golang.org/x/oauth2"
 	admin "google.golang.org/api/admin/reports/v1"
 	"google.golang.org/api/googleapi"
@@ -613,67 +614,38 @@ func (c *SurveyPage) addAnswer(ctx app.Context, answers ...string) {
 func (c *SurveyPage) pickFile(ctx app.Context) {
 	slog.InfoContext(ctx.Context, "SurveyPage: pickFile")
 
-	jsPickerBuilder := app.Window().Get("google").Get("picker").Get("PickerBuilder").New()
-	jsPickerBuilder.Call("setOAuthToken", c.userToken.AccessToken)
-	jsPickerBuilder.Call("setDeveloperKey", "AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
-	jsPickerBuilder.Call("setAppId", "ddm-personal")
+	pickerBuilder := googlepickerjs.NewPickerBuilder()
+	pickerBuilder.SetOAuthToken(c.userToken.AccessToken)
+	pickerBuilder.SetDeveloperKey("AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
+	pickerBuilder.SetAppId("ddm-personal")
 	if c.fileID != "" {
-		jsDocsView := app.Window().Get("google").Get("picker").Get("DocsView").New()
-		//jsDocsView.Call("setEnableDrives", true)
-		jsDocsView.Call("setFileIds", c.fileID)
-		jsDocsView.Call("setLabel", "Preferred File")
+		docsView := googlepickerjs.NewDocsView(nil)
+		docsView.SetFileIds(c.fileID)
+		docsView.SetLabel("Preferred File")
 
-		jsPickerBuilder.Call("addView", jsDocsView)
+		pickerBuilder.AddView(docsView)
 	}
-	jsPickerBuilder.Call("addView", app.Window().Get("google").Get("picker").Get("ViewId").Get("SPREADSHEETS"))
-	jsPickerBuilder.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
-		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "args", args)
-		if len(args) < 1 {
-			slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: picker callback: no data.")
-			return nil
+	pickerBuilder.AddView(googlepickerjs.ViewIDSpreadsheets)
+	pickerBuilder.SetCallback(func(response *googlepickerjs.ResponseObject) {
+		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "response", response)
+
+		if len(response.Docs) == 0 {
+			return
 		}
 
-		jsData := args[0]
-		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: data.", "data", jsData)
+		doc := response.Docs[0]
 
-		app.Window().Get("console").Call("log", jsData)
+		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "ID", doc.ID, "URL", doc.URL, "Name", doc.Name)
+		ctx.Dispatch(func(ctx app.Context) {
+			c.fileID = doc.ID
+			ctx.SetState("file-id", c.fileID).Persist()
 
-		var keys []string
-		app.Window().Get("Object").Call("keys", jsData).Call("forEach", app.FuncOf(func(this app.Value, args []app.Value) any {
-			keys = append(keys, args[0].String())
-			return nil
-		}))
-		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: keys.", "keys", keys)
-
-		if slices.Contains(keys, "docs") {
-			jsDocs := jsData.Get("docs")
-			if !app.Window().Get("Array").Call("isArray", jsDocs).Bool() {
-				slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: picker callback: docs is not an array")
-				return nil
-			}
-
-			jsDocsArray := app.Window().Get("Array").Call("from", jsDocs)
-			jsDocsArray.Call("forEach", app.FuncOf(func(this app.Value, args []app.Value) any {
-				slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "doc", args[0])
-				jsDoc := args[0]
-
-				slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "id", jsDoc.Get("id").String(), "url", jsDoc.Get("url").String(), "name", jsDoc.Get("name").String())
-				ctx.Dispatch(func(ctx app.Context) {
-					c.fileID = jsDoc.Get("id").String()
-					ctx.SetState("file-id", c.fileID).Persist()
-
-					c.pickedFile = true
-					c.pickedFileName = jsDoc.Get("name").String()
-				})
-
-				return nil
-			}))
-		}
-
-		return nil
-	}))
-	jsPicker := jsPickerBuilder.Call("build")
-	jsPicker.Call("setVisible", true)
+			c.pickedFile = true
+			c.pickedFileName = doc.Name
+		})
+	})
+	picker := pickerBuilder.Build()
+	picker.SetVisible(true)
 }
 
 func (c *SurveyPage) saveFile(ctx app.Context, id string) {
