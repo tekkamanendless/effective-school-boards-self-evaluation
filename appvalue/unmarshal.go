@@ -1,4 +1,4 @@
-package parsejavascript
+package appvalue
 
 import (
 	"fmt"

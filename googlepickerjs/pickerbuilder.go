@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/maxence-charriere/go-app/v11/pkg/app"
-	"github.com/tekkamanendless/effective-school-boards-self-evaluation/parsejavascript"
+	"github.com/tekkamanendless/effective-school-boards-self-evaluation/appvalue"
 )
 
 // PickerBuilder is a wrapper around the Google PickerBuilder API.
@@ -98,7 +98,7 @@ func (p *PickerBuilder) SetCallback(callback func(response *ResponseObject)) *Pi
 	p.jsValue.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
 		response := ResponseObject{}
 		response.jsValue = args[0]
-		err := parsejavascript.Unmarshal(response.jsValue, &response)
+		err := appvalue.Unmarshal(response.jsValue, &response)
 		if err != nil {
 			slog.ErrorContext(context.TODO(), "failed to parse response object.", "err", err)
 			return nil

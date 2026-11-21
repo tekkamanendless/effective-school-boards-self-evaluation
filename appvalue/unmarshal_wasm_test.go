@@ -1,4 +1,4 @@
-package parsejavascript
+package appvalue
 
 import (
 	"log/slog"
@@ -183,13 +183,20 @@ func TestUnmarshal(t *testing.T) {
 		jsValue.Set("age", 30)
 		jsValue.Set("isStudent", true)
 		jsValue.Set("height", 1.75)
+		jsValue.Set("emailAddresses", []any{"john1@example.com", "john2@example.com"})
+		jsValue.Set("phoneNumbers", []any{map[string]any{"type": "home", "value": "111-555-1000"}, map[string]any{"type": "work", "value": "111-555-2000"}})
 
 		t.Run("Perfect struct", func(t *testing.T) {
 			var target struct {
-				Name      string  `javascript:"name"`
-				Age       int     `javascript:"age"`
-				IsStudent bool    `javascript:"isStudent"`
-				Height    float64 `javascript:"height"`
+				Name           string   `javascript:"name"`
+				Age            int      `javascript:"age"`
+				IsStudent      bool     `javascript:"isStudent"`
+				Height         float64  `javascript:"height"`
+				EmailAddresses []string `javascript:"emailAddresses"`
+				PhoneNumbers   []struct {
+					Type  string `javascript:"type"`
+					Value string `javascript:"value"`
+				} `javascript:"phoneNumbers"`
 			}
 			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
@@ -197,13 +204,26 @@ func TestUnmarshal(t *testing.T) {
 			require.Equal(t, 30, target.Age)
 			require.True(t, target.IsStudent)
 			require.Equal(t, 1.75, target.Height)
+			require.Equal(t, []string{"john1@example.com", "john2@example.com"}, target.EmailAddresses)
+			require.Equal(t, []struct {
+				Type  string `javascript:"type"`
+				Value string `javascript:"value"`
+			}{
+				{Type: "home", Value: "111-555-1000"},
+				{Type: "work", Value: "111-555-2000"},
+			}, target.PhoneNumbers)
 		})
 		t.Run("Struct with ignored field", func(t *testing.T) {
 			var target struct {
-				Name      string  `javascript:"-"`
-				Age       int     `javascript:"age"`
-				IsStudent bool    `javascript:"isStudent"`
-				Height    float64 `javascript:"height"`
+				Name           string   `javascript:"-"`
+				Age            int      `javascript:"age"`
+				IsStudent      bool     `javascript:"isStudent"`
+				Height         float64  `javascript:"height"`
+				EmailAddresses []string `javascript:"emailAddresses"`
+				PhoneNumbers   []struct {
+					Type  string `javascript:"type"`
+					Value string `javascript:"value"`
+				} `javascript:"phoneNumbers"`
 			}
 			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
@@ -211,13 +231,26 @@ func TestUnmarshal(t *testing.T) {
 			require.Equal(t, 30, target.Age)
 			require.True(t, target.IsStudent)
 			require.Equal(t, 1.75, target.Height)
+			require.Equal(t, []string{"john1@example.com", "john2@example.com"}, target.EmailAddresses)
+			require.Equal(t, []struct {
+				Type  string `javascript:"type"`
+				Value string `javascript:"value"`
+			}{
+				{Type: "home", Value: "111-555-1000"},
+				{Type: "work", Value: "111-555-2000"},
+			}, target.PhoneNumbers)
 		})
 		t.Run("Struct with missing field", func(t *testing.T) {
 			var target struct {
-				Name      string
-				Age       int     `javascript:"age"`
-				IsStudent bool    `javascript:"isStudent"`
-				Height    float64 `javascript:"height"`
+				Name           string
+				Age            int      `javascript:"age"`
+				IsStudent      bool     `javascript:"isStudent"`
+				Height         float64  `javascript:"height"`
+				EmailAddresses []string `javascript:"emailAddresses"`
+				PhoneNumbers   []struct {
+					Type  string `javascript:"type"`
+					Value string `javascript:"value"`
+				} `javascript:"phoneNumbers"`
 			}
 			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
@@ -225,6 +258,14 @@ func TestUnmarshal(t *testing.T) {
 			require.Equal(t, 30, target.Age)
 			require.True(t, target.IsStudent)
 			require.Equal(t, 1.75, target.Height)
+			require.Equal(t, []string{"john1@example.com", "john2@example.com"}, target.EmailAddresses)
+			require.Equal(t, []struct {
+				Type  string `javascript:"type"`
+				Value string `javascript:"value"`
+			}{
+				{Type: "home", Value: "111-555-1000"},
+				{Type: "work", Value: "111-555-2000"},
+			}, target.PhoneNumbers)
 		})
 	})
 }
