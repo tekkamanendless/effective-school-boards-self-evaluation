@@ -98,7 +98,7 @@ func (p *PickerBuilder) SetCallback(callback func(response *ResponseObject)) *Pi
 	p.jsValue.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
 		response := ResponseObject{}
 		response.jsValue = args[0]
-		err := parsejavascript.Parse(response.jsValue, &response)
+		err := parsejavascript.Unmarshal(response.jsValue, &response)
 		if err != nil {
 			slog.ErrorContext(context.TODO(), "failed to parse response object.", "err", err)
 			return nil

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParse(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	handler :=
 		tint.NewHandler(os.Stderr, &tint.Options{
 			NoColor:   !isatty.IsTerminal(os.Stderr.Fd()),
@@ -43,31 +43,31 @@ func TestParse(t *testing.T) {
 
 		t.Run("*bool", func(t *testing.T) {
 			var target bool
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, false, target)
 		})
 		t.Run("*float64", func(t *testing.T) {
 			var target float64
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, 0.0, target)
 		})
 		t.Run("*int", func(t *testing.T) {
 			var target int
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, 0, target)
 		})
 		t.Run("*string", func(t *testing.T) {
 			var target string
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "John", target)
 		})
 		t.Run("string", func(t *testing.T) {
 			var target string
-			err := Parse(jsValue, target)
+			err := Unmarshal(jsValue, target)
 			require.Error(t, err)
 			require.Equal(t, "", target)
 		})
@@ -78,31 +78,31 @@ func TestParse(t *testing.T) {
 
 		t.Run("*bool", func(t *testing.T) {
 			var target bool
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, false, target)
 		})
 		t.Run("*float64", func(t *testing.T) {
 			var target float64
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, 30.0, target)
 		})
 		t.Run("*int", func(t *testing.T) {
 			var target int
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, 30, target)
 		})
 		t.Run("int", func(t *testing.T) {
 			var target int
-			err := Parse(jsValue, target)
+			err := Unmarshal(jsValue, target)
 			require.Error(t, err)
 			require.Equal(t, 0, target)
 		})
 		t.Run("*string", func(t *testing.T) {
 			var target string
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, "", target)
 		})
@@ -113,31 +113,31 @@ func TestParse(t *testing.T) {
 
 		t.Run("*bool", func(t *testing.T) {
 			var target bool
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.True(t, target)
 		})
 		t.Run("bool", func(t *testing.T) {
 			var target bool
-			err := Parse(jsValue, target)
+			err := Unmarshal(jsValue, target)
 			require.Error(t, err)
 			require.Equal(t, false, target)
 		})
 		t.Run("*float64", func(t *testing.T) {
 			var target float64
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, 0.0, target)
 		})
 		t.Run("*int", func(t *testing.T) {
 			var target int
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, 0, target)
 		})
 		t.Run("*string", func(t *testing.T) {
 			var target string
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, "", target)
 		})
@@ -148,31 +148,31 @@ func TestParse(t *testing.T) {
 
 		t.Run("*bool", func(t *testing.T) {
 			var target bool
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, false, target)
 		})
 		t.Run("*float64", func(t *testing.T) {
 			var target float64
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, 1.75, target)
 		})
 		t.Run("float64", func(t *testing.T) {
 			var target float64
-			err := Parse(jsValue, target)
+			err := Unmarshal(jsValue, target)
 			require.Error(t, err)
 			require.Equal(t, 0.0, target)
 		})
 		t.Run("*int", func(t *testing.T) {
 			var target int
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, 1, target)
 		})
 		t.Run("*string", func(t *testing.T) {
 			var target string
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.Error(t, err)
 			require.Equal(t, "", target)
 		})
@@ -191,7 +191,7 @@ func TestParse(t *testing.T) {
 				IsStudent bool    `javascript:"isStudent"`
 				Height    float64 `javascript:"height"`
 			}
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "John", target.Name)
 			require.Equal(t, 30, target.Age)
@@ -205,7 +205,7 @@ func TestParse(t *testing.T) {
 				IsStudent bool    `javascript:"isStudent"`
 				Height    float64 `javascript:"height"`
 			}
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "", target.Name)
 			require.Equal(t, 30, target.Age)
@@ -219,7 +219,7 @@ func TestParse(t *testing.T) {
 				IsStudent bool    `javascript:"isStudent"`
 				Height    float64 `javascript:"height"`
 			}
-			err := Parse(jsValue, &target)
+			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "", target.Name)
 			require.Equal(t, 30, target.Age)

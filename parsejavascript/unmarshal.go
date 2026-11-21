@@ -13,8 +13,8 @@ type Unmarshaler interface {
 	UnmarshalJavascript(javascriptValue app.Value) error
 }
 
-// Parse an app.Value into the target struct.
-func Parse(appValue app.Value, target any) error {
+// Unmarshal an app.Value into the target struct.
+func Unmarshal(appValue app.Value, target any) error {
 	slog.Debug("Parse: Parsing javascript value", "appValue", appValue, "target", target, "targetType", fmt.Sprintf("%T", target))
 
 	targetValue := reflect.ValueOf(target)
@@ -119,7 +119,7 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 	case reflect.Slice:
 		targetValue.Set(reflect.MakeSlice(targetValue.Type(), javascriptValue.Length(), javascriptValue.Length()))
 		for i := 0; i < javascriptValue.Length(); i++ {
-			err := Parse(javascriptValue.Index(i), targetValue.Index(i).Addr().Interface())
+			err := Unmarshal(javascriptValue.Index(i), targetValue.Index(i).Addr().Interface())
 			if err != nil {
 				return fmt.Errorf("failed to parse slice at index %d: %w", i, err)
 			}
