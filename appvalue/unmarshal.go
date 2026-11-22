@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
+	"slices"
+	"time"
 
 	"github.com/maxence-charriere/go-app/v11/pkg/app"
 )
@@ -135,8 +137,112 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 			}
 		}
 	case reflect.Map:
-		// TODO: fieldValue.Set(reflect.MakeMap(fieldValue.Type()))
-		return fmt.Errorf("map fields are not supported")
+		slog.Debug("parseValue: Target is a map.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+
+		if javascriptValue.Type().String() != "object" {
+			return fmt.Errorf("javascript value is not an object: %s", javascriptValue.Type().String())
+		}
+
+		targetValue.Set(reflect.MakeMap(targetValue.Type()))
+
+		var keys []string
+		{
+			jsKeys := app.Window().Get("Object").Call("keys", javascriptValue)
+			for i := 0; i < jsKeys.Length(); i++ {
+				key := jsKeys.Index(i).String()
+				keys = append(keys, key)
+			}
+			slices.Sort(keys)
+		}
+		slog.Debug("parseValue: Keys", "keys", keys)
+
+		for _, key := range keys {
+			jsMapPropertyValue := javascriptValue.Get(key)
+
+			if targetValue.Type().Elem() == reflect.TypeFor[any]() {
+				slog.Debug("parseValue: Target is an any.", "javascriptValue", jsMapPropertyValue, "targetValue", targetValue, "targetType", targetValue.Type())
+
+				nativePropertyValue, err := valueToNative(jsMapPropertyValue)
+				if err != nil {
+					return fmt.Errorf("failed to convert javascript value to native: %w", err)
+				}
+
+				targetValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(nativePropertyValue))
+				continue
+			}
+
+			err := Unmarshal(jsMapPropertyValue, targetValue.MapIndex(reflect.ValueOf(key)).Addr().Interface())
+			if err != nil {
+				return fmt.Errorf("failed to parse map at key %s: %w", key, err)
+			}
+		}
+	default:
+		return fmt.Errorf("unsupported target value kind: %s", targetValue.Kind())
 	}
 	return nil
+}
+
+func valueToNative(javascriptValue app.Value) (any, error) {
+	switch javascriptValue.Type() {
+	case app.TypeBoolean:
+		return javascriptValue.Bool(), nil
+	case app.TypeFunction:
+		// TODO: Implement function to native conversion.
+		return javascriptValue, nil
+	case app.TypeNumber:
+		return javascriptValue.Float(), nil
+	case app.TypeObject:
+		// TODO: Implement object to native conversion.
+		switch javascriptValue.Get("constructor").Get("name").String() {
+		case "Array":
+			slog.Debug("valueToNative: Javascript value is an Array object")
+
+			newValue := reflect.MakeSlice(reflect.TypeOf([]any{}), javascriptValue.Length(), javascriptValue.Length())
+			for i := 0; i < javascriptValue.Length(); i++ {
+				nativeValue, err := valueToNative(javascriptValue.Index(i))
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert javascript value to native: %w", err)
+				}
+				newValue.Index(i).Set(reflect.ValueOf(nativeValue))
+			}
+			return newValue.Interface(), nil
+		case "Date":
+			slog.Debug("valueToNative: Javascript value is a Date object")
+
+			milliseconds := javascriptValue.Call("getTime").Int()
+			return Timestamp(time.Unix(0, int64(milliseconds)*int64(time.Millisecond)).UTC()), nil
+		case "Object":
+			slog.Debug("valueToNative: Javascript value is an Object object")
+
+			newValue := reflect.MakeMap(reflect.TypeOf(map[string]any{}))
+
+			var keys []string
+			{
+				jsKeys := app.Window().Get("Object").Call("keys", javascriptValue)
+				for i := 0; i < jsKeys.Length(); i++ {
+					key := jsKeys.Index(i).String()
+					keys = append(keys, key)
+				}
+				slices.Sort(keys)
+			}
+			slog.Debug("valueToNative: Keys", "keys", keys)
+
+			for _, key := range keys {
+				nativeValue, err := valueToNative(javascriptValue.Get(key))
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert javascript value to native: %w", err)
+				}
+				newValue.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(nativeValue))
+			}
+			return newValue.Interface(), nil
+		}
+		return javascriptValue, nil
+	case app.TypeNull:
+		return nil, nil
+	case app.TypeString:
+		return javascriptValue.String(), nil
+	case app.TypeUndefined:
+		return nil, nil
+	}
+	return nil, fmt.Errorf("unsupported javascript value type: %s", javascriptValue.Type())
 }

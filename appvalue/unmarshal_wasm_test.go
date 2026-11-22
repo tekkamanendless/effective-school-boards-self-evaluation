@@ -228,6 +228,7 @@ func TestUnmarshal(t *testing.T) {
 					Type  string `javascript:"type"`
 					Value string `javascript:"value"`
 				} `javascript:"phoneNumbers"`
+				CreatedAt Timestamp `javascript:"createdAt"`
 			}
 			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
@@ -255,6 +256,7 @@ func TestUnmarshal(t *testing.T) {
 					Type  string `javascript:"type"`
 					Value string `javascript:"value"`
 				} `javascript:"phoneNumbers"`
+				CreatedAt Timestamp `javascript:"createdAt"`
 			}
 			err := Unmarshal(jsValue, &target)
 			require.NoError(t, err)
@@ -270,6 +272,19 @@ func TestUnmarshal(t *testing.T) {
 				{Type: "home", Value: "111-555-1000"},
 				{Type: "work", Value: "111-555-2000"},
 			}, target.PhoneNumbers)
+		})
+		t.Run("Map", func(t *testing.T) {
+			var target map[string]any
+			err := Unmarshal(jsValue, &target)
+			require.NoError(t, err)
+			require.NotNil(t, target)
+			require.Equal(t, "John", target["name"])
+			require.Equal(t, 30.0, target["age"])
+			require.Equal(t, true, target["isStudent"])
+			require.Equal(t, 1.75, target["height"])
+			require.Equal(t, []any{"john1@example.com", "john2@example.com"}, target["emailAddresses"])
+			require.Equal(t, []any{map[string]any{"type": "home", "value": "111-555-1000"}, map[string]any{"type": "work", "value": "111-555-2000"}}, target["phoneNumbers"])
+			require.Equal(t, Timestamp(time.Date(2026, time.January, 1, 12, 30, 0, 0, time.UTC)), target["createdAt"])
 		})
 	})
 }
