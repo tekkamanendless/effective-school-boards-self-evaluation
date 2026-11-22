@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-app-blazar/blazar/blazar"
 	"github.com/go-app-blazar/blazar/blazarapp"
+	"github.com/go-app-blazar/googleoauthjs/plugin/googleoauth"
 	"github.com/go-app-blazar/router"
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
@@ -168,6 +169,7 @@ func main() {
 	blazarApp.AddPlugin(mainplugin.NewPlugin(mainplugin.Config{
 		Location: "/web/main/",
 	}))
+	blazarApp.AddPlugin(googleoauth.NewPlugin(googleoauth.Config{}))
 
 	slog.InfoContext(ctx, "Disable service worker?", "disableServiceWorker", disableServiceWorker)
 	if disableServiceWorker {
