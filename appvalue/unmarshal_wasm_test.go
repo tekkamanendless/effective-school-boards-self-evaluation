@@ -186,9 +186,12 @@ func TestUnmarshal(t *testing.T) {
 	})
 	t.Run("Object", func(t *testing.T) {
 		t.Run("Perfect struct", func(t *testing.T) {
+			type base struct {
+				Name string `javascript:"name"`
+				Age  int    `javascript:"age"`
+			}
 			var target struct {
-				Name           string   `javascript:"name"`
-				Age            int      `javascript:"age"`
+				base
 				IsStudent      bool     `javascript:"isStudent"`
 				Height         float64  `javascript:"height"`
 				EmailAddresses []string `javascript:"emailAddresses"`
