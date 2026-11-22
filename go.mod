@@ -3,7 +3,7 @@ module github.com/tekkamanendless/effective-school-boards-self-evaluation
 go 1.26.2
 
 require (
-	github.com/go-app-blazar/blazar v0.5.6
+	github.com/go-app-blazar/blazar v0.5.7
 	github.com/go-app-blazar/googleoauthjs v0.1.1
 	github.com/go-app-blazar/googlepickerjs v0.1.1
 	github.com/go-app-blazar/router v0.1.2

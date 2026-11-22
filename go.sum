@@ -10,8 +10,8 @@ github.com/felixge/httpsnoop v1.1.0 h1:3YtUj32ZZkqZtt3sZZsClsymw/QDuVfpNhoA31zeO
 github.com/felixge/httpsnoop v1.1.0/go.mod h1:Zqxgdd+1Rkcz8euOqdr7lqgCRJztwr5hp9vDSi5UZCE=
 github.com/go-app-blazar/appvalue v0.1.2 h1:t9DoUG3+Rz/fEGV+JNDdA8YMZM8KVEpVH0KhQuy2zoQ=
 github.com/go-app-blazar/appvalue v0.1.2/go.mod h1:j+4uEiA6diM6WSMmPXgVQM5PkHtdrGE/GkjoYYHv++o=
-github.com/go-app-blazar/blazar v0.5.6 h1:sg/ZKiWfTHvbUoLICgOtFN5DuBm9Gj1B3EYfRia2QwA=
-github.com/go-app-blazar/blazar v0.5.6/go.mod h1:dF015dmM18r7vlxviF6upT35PP7h4G54exX4+ZzYOAE=
+github.com/go-app-blazar/blazar v0.5.7 h1:6T/LLQJaP34XOf4o5dfjg4hDW7UYHpdQRfi+GFE9ZDg=
+github.com/go-app-blazar/blazar v0.5.7/go.mod h1:qzIu6g72EhaYVs5sEL5f/4ZixrlwNhcJ+c5Zfj5EGZQ=
 github.com/go-app-blazar/googleoauthjs v0.1.1 h1:m+qtiU5en+o/MNRrWH6JBCd/RuBCkq188hqmUYb7PkQ=
 github.com/go-app-blazar/googleoauthjs v0.1.1/go.mod h1:Tk8g+P4Bk6vKtCOnKk5Mlv556PAM51GzSfTEaH+ece0=
 github.com/go-app-blazar/googlepickerjs v0.1.1 h1:6G9xAMCXkwERbegG9diWH03gR3tgj+GYNaQu8ZzVReM=
