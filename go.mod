@@ -3,9 +3,9 @@ module github.com/tekkamanendless/effective-school-boards-self-evaluation
 go 1.26.2
 
 require (
-	github.com/go-app-blazar/appvalue v0.1.2
 	github.com/go-app-blazar/blazar v0.5.6
 	github.com/go-app-blazar/googleoauthjs v0.1.1
+	github.com/go-app-blazar/googlepickerjs v0.1.1
 	github.com/go-app-blazar/router v0.1.2
 	github.com/go-app-blazar/tabler-font v0.1.2
 	github.com/joho/godotenv v1.5.1
@@ -22,6 +22,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
+	github.com/go-app-blazar/appvalue v0.1.2 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/s2a-go v0.1.11 // indirect
