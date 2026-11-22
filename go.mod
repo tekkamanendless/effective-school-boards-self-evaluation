@@ -3,7 +3,7 @@ module github.com/tekkamanendless/effective-school-boards-self-evaluation
 go 1.26.2
 
 require (
-	github.com/go-app-blazar/appvalue v0.1.0
+	github.com/go-app-blazar/appvalue v0.1.2
 	github.com/go-app-blazar/blazar v0.5.6
 	github.com/go-app-blazar/googleoauthjs v0.1.0
 	github.com/go-app-blazar/router v0.1.2
@@ -47,3 +47,4 @@ require (
 replace github.com/maxence-charriere/go-app/v11 => github.com/tekkamanendless/fork-of-maxence-charriere-go-app/v11 v11.0.0-20261117190221-c2d33e0d7417
 
 //replace github.com/go-app-blazar/blazar => ../../go-app-blazar/blazar
+//replace github.com/go-app-blazar/appvalue => ../../go-app-blazar/appvalue

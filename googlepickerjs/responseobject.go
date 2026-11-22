@@ -13,13 +13,7 @@ type ResponseObject struct {
 	// The parent folders for the selected items.
 	Parents []ParentDocumentObject `javascript:"parents"`
 	// The view the user selected these items from.
-	ViewToken *ResponseObjectView
-}
-
-type ResponseObjectView struct {
-	ViewID      string
-	Label       string
-	ViewOptions map[string]any
+	ViewToken []any `javascript:"viewToken"` // [0] is the view ID, [1] is the view label (or null), [2] is the a map of view options.
 }
 
 // JSValue returns the underlying JavaScript value.

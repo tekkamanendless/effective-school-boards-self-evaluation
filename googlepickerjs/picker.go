@@ -30,14 +30,17 @@ func (p *Picker) IsVisible() bool {
 // Specify the callback method called whenever the user has selected an item (or canceled.)
 func (p *Picker) SetCallback(callback func(response *ResponseObject)) {
 	p.jsValue.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
-		response := ResponseObject{}
-		response.jsValue = args[0]
-		err := appvalue.Unmarshal(response.jsValue, &response)
+		jsRawValue := args[0]
+
+		var response ResponseObject
+		//app.Window().Get("console").Call("log", "ResponseObject", response.jsValue)
+		err := appvalue.Unmarshal(jsRawValue, &response)
 		if err != nil {
 			slog.ErrorContext(context.TODO(), "failed to parse response object.", "err", err)
 			return nil
 		}
-		// TODO: Parse the ViewToken item.
+		response.jsValue = jsRawValue
+
 		callback(&response)
 		return nil
 	}))

@@ -96,14 +96,17 @@ func (p *PickerBuilder) SetAppId(appID string) *PickerBuilder {
 // Set the callback method. This method is called when the user selects items or cancels. The callback method receives a single callback object. The structure of the callback object is described in the JSON Guide.
 func (p *PickerBuilder) SetCallback(callback func(response *ResponseObject)) *PickerBuilder {
 	p.jsValue.Call("setCallback", app.FuncOf(func(this app.Value, args []app.Value) any {
-		response := ResponseObject{}
-		response.jsValue = args[0]
-		err := appvalue.Unmarshal(response.jsValue, &response)
+		jsRawValue := args[0]
+
+		var response ResponseObject
+		//app.Window().Get("console").Call("log", "ResponseObject", response.jsValue)
+		err := appvalue.Unmarshal(jsRawValue, &response)
 		if err != nil {
 			slog.ErrorContext(context.TODO(), "failed to parse response object.", "err", err)
 			return nil
 		}
-		// TODO: Parse the ViewToken item.
+		response.jsValue = jsRawValue
+
 		callback(&response)
 		return nil
 	}))
