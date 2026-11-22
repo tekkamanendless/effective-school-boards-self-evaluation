@@ -6,6 +6,7 @@
 //
 // - javascript:"<name>": The name of the property in the javascript object (such as `javascript:"favoriteColor"`).
 // - javascript:"-" : Skip the field.
+// - javascript:"@this": Put the raw app.Value into this field.
 //
 // # Special Support
 //

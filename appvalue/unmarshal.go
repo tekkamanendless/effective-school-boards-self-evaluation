@@ -115,6 +115,10 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 		}
 		targetValue.SetBool(javascriptValue.Bool())
 	case reflect.Struct:
+		if javascriptValue.Type().String() != "object" {
+			return fmt.Errorf("javascript value is not an object: %s", javascriptValue.Type().String())
+		}
+
 		targetType := targetValue.Type()
 		for _, field := range reflect.VisibleFields(targetType) {
 			javascriptTag := field.Tag.Get("javascript")
@@ -134,8 +138,6 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 				continue
 			}
 
-			javascriptValue := javascriptValue.Get(javascriptPropertyName)
-
 			fieldValue := targetValue.FieldByName(field.Name)
 			if !fieldValue.IsValid() {
 				if debug {
@@ -150,12 +152,27 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 				continue
 			}
 
-			err := parseValue(javascriptValue, fieldValue)
+			var jsPropertyValue app.Value
+			if javascriptPropertyName == "@this" {
+				if debug {
+					slog.Debug("parseValue: Using javascript value as the target value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+				}
+
+				jsPropertyValue = javascriptValue
+			} else {
+				jsPropertyValue = javascriptValue.Get(javascriptPropertyName)
+			}
+
+			err := parseValue(jsPropertyValue, fieldValue)
 			if err != nil {
 				return fmt.Errorf("failed to parse field %s: %w", field.Name, err)
 			}
 		}
 	case reflect.Slice:
+		if javascriptValue.Type().String() != "object" {
+			return fmt.Errorf("javascript value is not an object: %s", javascriptValue.Type().String())
+		}
+
 		targetValue.Set(reflect.MakeSlice(targetValue.Type(), javascriptValue.Length(), javascriptValue.Length()))
 		for i := 0; i < javascriptValue.Length(); i++ {
 			err := Unmarshal(javascriptValue.Index(i), targetValue.Index(i).Addr().Interface())
@@ -164,12 +181,12 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 			}
 		}
 	case reflect.Map:
-		if debug {
-			slog.Debug("parseValue: Target is a map.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
-		}
-
 		if javascriptValue.Type().String() != "object" {
 			return fmt.Errorf("javascript value is not an object: %s", javascriptValue.Type().String())
+		}
+
+		if debug {
+			slog.Debug("parseValue: Target is a map.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
 		}
 
 		targetValue.Set(reflect.MakeMap(targetValue.Type()))

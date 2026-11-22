@@ -186,11 +186,15 @@ func TestUnmarshal(t *testing.T) {
 	})
 	t.Run("Object", func(t *testing.T) {
 		t.Run("Perfect struct", func(t *testing.T) {
+			type hasRawValue struct {
+				RawValue app.Value `javascript:"@this"`
+			}
 			type base struct {
 				Name string `javascript:"name"`
 				Age  int    `javascript:"age"`
 			}
 			var target struct {
+				hasRawValue
 				base
 				IsStudent      bool     `javascript:"isStudent"`
 				Height         float64  `javascript:"height"`
@@ -203,6 +207,7 @@ func TestUnmarshal(t *testing.T) {
 			}
 			err := Unmarshal(jsObjectValue, &target)
 			require.NoError(t, err)
+			require.Equal(t, jsObjectValue, target.RawValue)
 			require.Equal(t, "John", target.Name)
 			require.Equal(t, 30, target.Age)
 			require.True(t, target.IsStudent)
