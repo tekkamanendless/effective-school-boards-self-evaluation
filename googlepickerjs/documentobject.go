@@ -1,13 +1,7 @@
 package googlepickerjs
 
-import (
-	"github.com/maxence-charriere/go-app/v11/pkg/app"
-)
-
 // DocumentObject is an interface describing the attributes of a selected item.
 type DocumentObject struct {
-	jsValue app.Value // The underlying JavaScript value.
-
 	// Deprecated
 	AddressLines []string `javascript:"addressLines"`
 	// Deprecated
@@ -71,9 +65,4 @@ type DocumentObject struct {
 	UploadState string `javascript:"uploadState"`
 	// A URL to this item.
 	URL string `javascript:"url"`
-}
-
-// JSValue returns the underlying JavaScript value.
-func (d *DocumentObject) JSValue() app.Value {
-	return d.jsValue
 }

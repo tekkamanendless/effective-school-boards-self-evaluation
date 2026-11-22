@@ -105,7 +105,6 @@ func (p *PickerBuilder) SetCallback(callback func(response *ResponseObject)) *Pi
 			slog.ErrorContext(context.TODO(), "failed to parse response object.", "err", err)
 			return nil
 		}
-		response.jsValue = jsRawValue
 
 		callback(&response)
 		return nil
