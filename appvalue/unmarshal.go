@@ -17,7 +17,9 @@ type Unmarshaler interface {
 
 // Unmarshal an app.Value into the target struct.
 func Unmarshal(appValue app.Value, target any) error {
-	slog.Debug("Unmarshal: Parsing javascript value", "appValue", appValue, "target", target, "targetType", fmt.Sprintf("%T", target))
+	if debug {
+		slog.Debug("Unmarshal: Parsing javascript value", "appValue", appValue, "target", target, "targetType", fmt.Sprintf("%T", target))
+	}
 
 	targetValue := reflect.ValueOf(target)
 	if targetValue.Kind() != reflect.Pointer {
@@ -28,46 +30,63 @@ func Unmarshal(appValue app.Value, target any) error {
 	return parseValue(appValue, targetValue)
 }
 
+// parseValue parses a javascript value into a target value.
 func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
-	slog.Debug("parseValue: Parsing javascript value", "javascriptValue", javascriptValue, "targetType", targetValue.Type().String())
+	if debug {
+		slog.Debug("parseValue: Parsing javascript value", "javascriptValue", javascriptValue, "targetType", targetValue.Type().String())
+	}
 
 	if targetValue.Kind() != reflect.Pointer && targetValue.CanAddr() {
 		if targetValue.Addr().Type().Implements(reflect.TypeFor[Unmarshaler]()) {
-			slog.Debug("parseValue: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+			if debug {
+				slog.Debug("parseValue: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+			}
 
 			return targetValue.Addr().Interface().(Unmarshaler).UnmarshalJavascript(javascriptValue)
 		}
 	}
 
 	if targetValue.Type().Implements(reflect.TypeFor[Unmarshaler]()) {
-		slog.Debug("parseValue: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		if debug {
+			slog.Debug("parseValue: Unmarshalling javascript value using Unmarshaler.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		}
 
 		return targetValue.Interface().(Unmarshaler).UnmarshalJavascript(javascriptValue)
 	}
 
 	// If the field is an app.Value, we can just set it directly.
 	if targetValue.Type().Implements(reflect.TypeFor[app.Value]()) {
-		slog.Debug("parseValue: Setting javascript value directly.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		if debug {
+			slog.Debug("parseValue: Setting javascript value directly.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		}
 
 		targetValue.Set(reflect.ValueOf(javascriptValue))
 		return nil
 	}
 
-	slog.Debug("parseValue: javascriptValue.", "type", javascriptValue.Type())
+	if debug {
+		slog.Debug("parseValue: javascriptValue.", "type", javascriptValue.Type())
+	}
 
 	// If the value is null, we can just skip it.
 	if javascriptValue.IsNull() {
-		slog.Debug("parseValue: Skipping null javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		if debug {
+			slog.Debug("parseValue: Skipping null javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		}
 
 		return nil
 	}
 	if javascriptValue.IsUndefined() {
-		slog.Debug("parseValue: Skipping undefined javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		if debug {
+			slog.Debug("parseValue: Skipping undefined javascript value.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		}
 
 		return nil
 	}
 
-	slog.Debug("parseValue: targetValue.", "kind", targetValue.Kind())
+	if debug {
+		slog.Debug("parseValue: targetValue.", "kind", targetValue.Kind())
+	}
 
 	switch targetValue.Kind() {
 	case reflect.String:
@@ -104,10 +123,14 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 			}
 
 			javascriptPropertyName := javascriptTag
-			slog.Debug("parseValue: Getting javascript property.", "javascriptPropertyName", javascriptPropertyName)
+			if debug {
+				slog.Debug("parseValue: Getting javascript property.", "javascriptPropertyName", javascriptPropertyName)
+			}
 
 			if javascriptPropertyName == "-" {
-				slog.Debug("parseValue: Skipping field.", "field", field)
+				if debug {
+					slog.Debug("parseValue: Skipping field.", "field", field)
+				}
 				continue
 			}
 
@@ -115,11 +138,15 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 
 			fieldValue := targetValue.FieldByName(field.Name)
 			if !fieldValue.IsValid() {
-				slog.Debug("parseValue: Field is not valid.", "field", field)
+				if debug {
+					slog.Debug("parseValue: Field is not valid.", "field", field)
+				}
 				continue
 			}
 			if !fieldValue.CanSet() {
-				slog.Debug("parseValue: Field is not settable.", "field", field)
+				if debug {
+					slog.Debug("parseValue: Field is not settable.", "field", field)
+				}
 				continue
 			}
 
@@ -137,7 +164,9 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 			}
 		}
 	case reflect.Map:
-		slog.Debug("parseValue: Target is a map.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		if debug {
+			slog.Debug("parseValue: Target is a map.", "javascriptValue", javascriptValue, "targetValue", targetValue, "targetType", targetValue.Type())
+		}
 
 		if javascriptValue.Type().String() != "object" {
 			return fmt.Errorf("javascript value is not an object: %s", javascriptValue.Type().String())
@@ -145,22 +174,18 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 
 		targetValue.Set(reflect.MakeMap(targetValue.Type()))
 
-		var keys []string
-		{
-			jsKeys := app.Window().Get("Object").Call("keys", javascriptValue)
-			for i := 0; i < jsKeys.Length(); i++ {
-				key := jsKeys.Index(i).String()
-				keys = append(keys, key)
-			}
-			slices.Sort(keys)
+		keys := getObjectKeys(javascriptValue)
+		if debug {
+			slog.Debug("parseValue: Keys", "keys", keys)
 		}
-		slog.Debug("parseValue: Keys", "keys", keys)
 
 		for _, key := range keys {
 			jsMapPropertyValue := javascriptValue.Get(key)
 
 			if targetValue.Type().Elem() == reflect.TypeFor[any]() {
-				slog.Debug("parseValue: Target is an any.", "javascriptValue", jsMapPropertyValue, "targetValue", targetValue, "targetType", targetValue.Type())
+				if debug {
+					slog.Debug("parseValue: Target is an any.", "javascriptValue", jsMapPropertyValue, "targetValue", targetValue, "targetType", targetValue.Type())
+				}
 
 				nativePropertyValue, err := valueToNative(jsMapPropertyValue)
 				if err != nil {
@@ -182,6 +207,7 @@ func parseValue(javascriptValue app.Value, targetValue reflect.Value) error {
 	return nil
 }
 
+// valueToNative converts a javascript value to a native Go value.
 func valueToNative(javascriptValue app.Value) (any, error) {
 	switch javascriptValue.Type() {
 	case app.TypeBoolean:
@@ -192,12 +218,13 @@ func valueToNative(javascriptValue app.Value) (any, error) {
 	case app.TypeNumber:
 		return javascriptValue.Float(), nil
 	case app.TypeObject:
-		// TODO: Implement object to native conversion.
 		switch javascriptValue.Get("constructor").Get("name").String() {
 		case "Array":
-			slog.Debug("valueToNative: Javascript value is an Array object")
+			if debug {
+				slog.Debug("valueToNative: Javascript value is an Array object")
+			}
 
-			newValue := reflect.MakeSlice(reflect.TypeOf([]any{}), javascriptValue.Length(), javascriptValue.Length())
+			newValue := reflect.MakeSlice(reflect.TypeFor[[]any](), javascriptValue.Length(), javascriptValue.Length())
 			for i := 0; i < javascriptValue.Length(); i++ {
 				nativeValue, err := valueToNative(javascriptValue.Index(i))
 				if err != nil {
@@ -207,25 +234,23 @@ func valueToNative(javascriptValue app.Value) (any, error) {
 			}
 			return newValue.Interface(), nil
 		case "Date":
-			slog.Debug("valueToNative: Javascript value is a Date object")
+			if debug {
+				slog.Debug("valueToNative: Javascript value is a Date object")
+			}
 
 			milliseconds := javascriptValue.Call("getTime").Int()
 			return Timestamp(time.Unix(0, int64(milliseconds)*int64(time.Millisecond)).UTC()), nil
 		case "Object":
-			slog.Debug("valueToNative: Javascript value is an Object object")
-
-			newValue := reflect.MakeMap(reflect.TypeOf(map[string]any{}))
-
-			var keys []string
-			{
-				jsKeys := app.Window().Get("Object").Call("keys", javascriptValue)
-				for i := 0; i < jsKeys.Length(); i++ {
-					key := jsKeys.Index(i).String()
-					keys = append(keys, key)
-				}
-				slices.Sort(keys)
+			if debug {
+				slog.Debug("valueToNative: Javascript value is an Object object")
 			}
-			slog.Debug("valueToNative: Keys", "keys", keys)
+
+			newValue := reflect.MakeMap(reflect.TypeFor[map[string]any]())
+
+			keys := getObjectKeys(javascriptValue)
+			if debug {
+				slog.Debug("valueToNative: Keys", "keys", keys)
+			}
 
 			for _, key := range keys {
 				nativeValue, err := valueToNative(javascriptValue.Get(key))
@@ -245,4 +270,18 @@ func valueToNative(javascriptValue app.Value) (any, error) {
 		return nil, nil
 	}
 	return nil, fmt.Errorf("unsupported javascript value type: %s", javascriptValue.Type())
+}
+
+// getObjectKeys returns the keys of an object.
+func getObjectKeys(javascriptValue app.Value) []string {
+	var keys []string
+	{
+		jsKeys := app.Window().Get("Object").Call("keys", javascriptValue)
+		for i := 0; i < jsKeys.Length(); i++ {
+			key := jsKeys.Index(i).String()
+			keys = append(keys, key)
+		}
+		slices.Sort(keys)
+	}
+	return keys
 }

@@ -20,7 +20,9 @@ func TestUnmarshal(t *testing.T) {
 			Level:     slog.LevelDebug,
 		})
 	slog.SetDefault(slog.New(slog.NewMultiHandler(handler)))
+	Debug(true)
 
+	var jsObjectValue app.Value
 	var jsStringValue app.Value
 	var jsIntegerValue app.Value
 	var jsBooleanValue app.Value
@@ -31,7 +33,11 @@ func TestUnmarshal(t *testing.T) {
 		jsValue.Set("age", 30)
 		jsValue.Set("isStudent", true)
 		jsValue.Set("height", 1.75)
+		jsValue.Set("emailAddresses", []any{"john1@example.com", "john2@example.com"})
+		jsValue.Set("phoneNumbers", []any{map[string]any{"type": "home", "value": "111-555-1000"}, map[string]any{"type": "work", "value": "111-555-2000"}})
+		jsValue.Set("createdAt", app.Window().Get("Date").New(app.Window().Get("Date").Call("UTC", 2026, 0, 1, 12, 30, 0, 0)))
 
+		jsObjectValue = jsValue
 		jsStringValue = jsValue.Get("name")
 		jsIntegerValue = jsValue.Get("age")
 		jsBooleanValue = jsValue.Get("isStudent")
@@ -179,15 +185,6 @@ func TestUnmarshal(t *testing.T) {
 		})
 	})
 	t.Run("Object", func(t *testing.T) {
-		jsValue := app.Window().Get("Object").New()
-		jsValue.Set("name", "John")
-		jsValue.Set("age", 30)
-		jsValue.Set("isStudent", true)
-		jsValue.Set("height", 1.75)
-		jsValue.Set("emailAddresses", []any{"john1@example.com", "john2@example.com"})
-		jsValue.Set("phoneNumbers", []any{map[string]any{"type": "home", "value": "111-555-1000"}, map[string]any{"type": "work", "value": "111-555-2000"}})
-		jsValue.Set("createdAt", app.Window().Get("Date").New(app.Window().Get("Date").Call("UTC", 2026, 0, 1, 12, 30, 0, 0)))
-
 		t.Run("Perfect struct", func(t *testing.T) {
 			var target struct {
 				Name           string   `javascript:"name"`
@@ -201,7 +198,7 @@ func TestUnmarshal(t *testing.T) {
 				} `javascript:"phoneNumbers"`
 				CreatedAt Timestamp `javascript:"createdAt"`
 			}
-			err := Unmarshal(jsValue, &target)
+			err := Unmarshal(jsObjectValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "John", target.Name)
 			require.Equal(t, 30, target.Age)
@@ -230,7 +227,7 @@ func TestUnmarshal(t *testing.T) {
 				} `javascript:"phoneNumbers"`
 				CreatedAt Timestamp `javascript:"createdAt"`
 			}
-			err := Unmarshal(jsValue, &target)
+			err := Unmarshal(jsObjectValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "", target.Name)
 			require.Equal(t, 30, target.Age)
@@ -258,7 +255,7 @@ func TestUnmarshal(t *testing.T) {
 				} `javascript:"phoneNumbers"`
 				CreatedAt Timestamp `javascript:"createdAt"`
 			}
-			err := Unmarshal(jsValue, &target)
+			err := Unmarshal(jsObjectValue, &target)
 			require.NoError(t, err)
 			require.Equal(t, "", target.Name)
 			require.Equal(t, 30, target.Age)
@@ -275,7 +272,7 @@ func TestUnmarshal(t *testing.T) {
 		})
 		t.Run("Map", func(t *testing.T) {
 			var target map[string]any
-			err := Unmarshal(jsValue, &target)
+			err := Unmarshal(jsObjectValue, &target)
 			require.NoError(t, err)
 			require.NotNil(t, target)
 			require.Equal(t, "John", target["name"])
