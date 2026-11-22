@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/go-app-blazar/appvalue"
 	"github.com/maxence-charriere/go-app/v11/pkg/app"
-	"github.com/tekkamanendless/effective-school-boards-self-evaluation/appvalue"
 )
 
 // PickerBuilder is a wrapper around the Google PickerBuilder API.

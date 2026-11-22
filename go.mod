@@ -3,15 +3,15 @@ module github.com/tekkamanendless/effective-school-boards-self-evaluation
 go 1.26.2
 
 require (
+	github.com/go-app-blazar/appvalue v0.1.0
 	github.com/go-app-blazar/blazar v0.5.6
 	github.com/go-app-blazar/googleoauthjs v0.1.0
 	github.com/go-app-blazar/router v0.1.2
 	github.com/go-app-blazar/tabler-font v0.1.2
 	github.com/joho/godotenv v1.5.1
-	github.com/lmittmann/tint v1.1.3
-	github.com/mattn/go-isatty v0.0.22
+	github.com/lmittmann/tint v1.2.1
+	github.com/mattn/go-isatty v0.0.24
 	github.com/maxence-charriere/go-app/v11 v11.1.5
-	github.com/stretchr/testify v1.12.1
 	golang.org/x/oauth2 v0.38.0
 	google.golang.org/api v0.316.0
 )
@@ -35,7 +35,6 @@ require (
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect

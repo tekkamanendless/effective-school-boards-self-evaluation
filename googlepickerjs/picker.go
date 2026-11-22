@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/go-app-blazar/appvalue"
 	"github.com/maxence-charriere/go-app/v11/pkg/app"
-	"github.com/tekkamanendless/effective-school-boards-self-evaluation/appvalue"
 )
 
 type Picker struct {
