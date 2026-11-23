@@ -399,6 +399,7 @@ func (c *SurveyPage) Render() app.UI {
 						Style("flex-direction", "row").
 						Style("gap", "1em").
 						Style("align-items", "center").
+						Style("flex-wrap", "wrap").
 						Body(
 							app.Div().
 								Body(
