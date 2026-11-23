@@ -389,7 +389,20 @@ func (c *SurveyPage) Render() app.UI {
 											Icon(tabler.IconOutlineRefresh).
 											Label("Refresh File Info").
 											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
-												c.loadFileInfo(ctx)
+												ctx.Async(func() {
+													if c.tokenIsExpired(ctx) {
+														slog.InfoContext(ctx.Context, "SurveyPage: Refresh File Info: token is expired")
+														err := c.refreshToken(ctx)
+														if err != nil {
+															blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error refreshing token: "+err.Error()))
+															return
+														}
+													}
+
+													c.loadFileInfo(ctx)
+
+													ctx.Update()
+												})
 											}),
 									)
 							}),
@@ -731,148 +744,173 @@ func (c *SurveyPage) addAnswer(ctx app.Context, answers ...string) {
 func (c *SurveyPage) pickFile(ctx app.Context) {
 	slog.InfoContext(ctx.Context, "SurveyPage: pickFile")
 
-	pickerBuilder := googlepickerjs.NewPickerBuilder()
-	pickerBuilder.SetOAuthToken(c.userToken.AccessToken)
-	pickerBuilder.SetDeveloperKey("AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
-	pickerBuilder.SetAppId("733119922879") // ddm-personal
-	if c.fileID != "" {
-		docsView := googlepickerjs.NewDocsView(nil)
-		docsView.SetFileIds(c.fileID)
-		docsView.SetLabel("Preferred File")
-
-		pickerBuilder.AddView(docsView)
-	}
-	pickerBuilder.AddView(googlepickerjs.ViewIDSpreadsheets)
-	pickerBuilder.SetCallback(func(response *googlepickerjs.ResponseObject) {
-		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "response", response)
-
-		if len(response.Docs) == 0 {
-			return
-		}
-
-		doc := response.Docs[0]
-
-		slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "ID", doc.ID, "URL", doc.URL, "Name", doc.Name)
-		ctx.Dispatch(func(ctx app.Context) {
-			c.fileID = doc.ID
-			ctx.SetState("file-id", c.fileID).Persist()
-
-			c.pickedFile = true
-			c.pickedFileName = doc.Name
-
-			err := c.loadSheetData(ctx)
+	ctx.Async(func() {
+		if c.tokenIsExpired(ctx) {
+			slog.InfoContext(ctx.Context, "SurveyPage: pickFile: token is expired")
+			err := c.refreshToken(ctx)
 			if err != nil {
-				slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: error loading sheet data.", "err", err)
-				blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error loading sheet data: "+err.Error()))
+				slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: error", "err", err)
+				ctx.Dispatch(func(ctx app.Context) {
+					//c.searching = false
+				})
+				blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error refreshing token: "+err.Error()))
 				return
 			}
+		}
+
+		pickerBuilder := googlepickerjs.NewPickerBuilder()
+		pickerBuilder.SetOAuthToken(c.userToken.AccessToken)
+		pickerBuilder.SetDeveloperKey("AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
+		pickerBuilder.SetAppId("733119922879") // ddm-personal
+		if c.fileID != "" {
+			docsView := googlepickerjs.NewDocsView(nil)
+			docsView.SetFileIds(c.fileID)
+			docsView.SetLabel("Preferred File")
+
+			pickerBuilder.AddView(docsView)
+		}
+		pickerBuilder.AddView(googlepickerjs.ViewIDSpreadsheets)
+		pickerBuilder.SetCallback(func(response *googlepickerjs.ResponseObject) {
+			slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback", "response", response)
+
+			if len(response.Docs) == 0 {
+				return
+			}
+
+			doc := response.Docs[0]
+
+			slog.InfoContext(ctx.Context, "SurveyPage: pickFile: picker callback: doc.", "ID", doc.ID, "URL", doc.URL, "Name", doc.Name)
+			ctx.Dispatch(func(ctx app.Context) {
+				c.fileID = doc.ID
+				ctx.SetState("file-id", c.fileID).Persist()
+
+				c.pickedFile = true
+				c.pickedFileName = doc.Name
+
+				err := c.loadSheetData(ctx)
+				if err != nil {
+					slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: error loading sheet data.", "err", err)
+					blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error loading sheet data: "+err.Error()))
+					return
+				}
+			})
 		})
+		picker := pickerBuilder.Build()
+		picker.SetVisible(true)
 	})
-	picker := pickerBuilder.Build()
-	picker.SetVisible(true)
 }
 
 func (c *SurveyPage) saveMyCurrentResponses(ctx app.Context) {
 	slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses", "fileID", c.fileID)
 
-	err := func() error {
-		tokenSource := oauth2.StaticTokenSource(c.userToken)
-		sheetsService, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
-		if err != nil {
-			return fmt.Errorf("error creating sheets service: %w", err)
-		}
+	ctx.Async(func() {
+		err := func() error {
+			if c.tokenIsExpired(ctx) {
+				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: token is expired")
+				err := c.refreshToken(ctx)
+				if err != nil {
+					return fmt.Errorf("error refreshing token: %w", err)
+				}
+			}
 
-		// Test for a header and create one if there isn't one.
-		{
+			tokenSource := oauth2.StaticTokenSource(c.userToken)
+			sheetsService, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
+			if err != nil {
+				return fmt.Errorf("error creating sheets service: %w", err)
+			}
+
+			// Test for a header and create one if there isn't one.
+			{
+				valueRange, err := sheetsService.Spreadsheets.Values.Get(c.fileID, "1:1").Do()
+				if err != nil {
+					return fmt.Errorf("error getting value range: %w", err)
+				}
+				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range.", "valueRange", valueRange)
+
+				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values.", "values", valueRange.Values)
+				if len(valueRange.Values) == 0 {
+					slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values is empty.")
+
+					headerRow := []any{"date", "email"}
+					for _, item := range c.model.Items {
+						headerRow = append(headerRow, item.ID)
+					}
+
+					response, err := sheetsService.Spreadsheets.Values.Append(c.fileID, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{headerRow}}).ValueInputOption("RAW").Do()
+					if err != nil {
+						return fmt.Errorf("error appending initial header: %w", err)
+					}
+					slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range appended.", "response", response)
+				}
+			}
+
+			// Get the header row.
 			valueRange, err := sheetsService.Spreadsheets.Values.Get(c.fileID, "1:1").Do()
 			if err != nil {
 				return fmt.Errorf("error getting value range: %w", err)
 			}
 			slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range.", "valueRange", valueRange)
-
 			slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values.", "values", valueRange.Values)
+
 			if len(valueRange.Values) == 0 {
-				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values is empty.")
-
-				headerRow := []any{"date", "email"}
-				for _, item := range c.model.Items {
-					headerRow = append(headerRow, item.ID)
-				}
-
-				response, err := sheetsService.Spreadsheets.Values.Append(c.fileID, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{headerRow}}).ValueInputOption("RAW").Do()
-				if err != nil {
-					return fmt.Errorf("error appending initial header: %w", err)
-				}
-				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range appended.", "response", response)
-			}
-		}
-
-		// Get the header row.
-		valueRange, err := sheetsService.Spreadsheets.Values.Get(c.fileID, "1:1").Do()
-		if err != nil {
-			return fmt.Errorf("error getting value range: %w", err)
-		}
-		slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range.", "valueRange", valueRange)
-		slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values.", "values", valueRange.Values)
-
-		if len(valueRange.Values) == 0 {
-			return fmt.Errorf("no header row present")
-		}
-
-		header := []string{}
-		for _, cell := range valueRange.Values[0] {
-			header = append(header, fmt.Sprintf("%v", cell))
-		}
-
-		headerNameToIndexMap := map[string]int{}
-		for index, name := range header {
-			headerNameToIndexMap[name] = index
-		}
-
-		newRow := make([]any, len(header))
-		if index, ok := headerNameToIndexMap["date"]; ok {
-			newRow[index] = time.Now().Format("2006-01-02")
-		} else {
-			return fmt.Errorf("header not present: date")
-		}
-		if index, ok := headerNameToIndexMap["email"]; ok {
-			newRow[index] = c.userInfo.Email
-		} else {
-			return fmt.Errorf("header not present: email")
-		}
-		for _, item := range c.answers {
-			value := ""
-			var itemID string
-			if strings.HasPrefix(item, "+") {
-				value = "1"
-				itemID = strings.TrimPrefix(item, "+")
-			} else if strings.HasPrefix(item, "-") {
-				value = "0"
-				itemID = strings.TrimPrefix(item, "-")
+				return fmt.Errorf("no header row present")
 			}
 
-			if index, ok := headerNameToIndexMap[itemID]; ok {
-				newRow[index] = value
+			header := []string{}
+			for _, cell := range valueRange.Values[0] {
+				header = append(header, fmt.Sprintf("%v", cell))
+			}
+
+			headerNameToIndexMap := map[string]int{}
+			for index, name := range header {
+				headerNameToIndexMap[name] = index
+			}
+
+			newRow := make([]any, len(header))
+			if index, ok := headerNameToIndexMap["date"]; ok {
+				newRow[index] = time.Now().Format("2006-01-02")
 			} else {
-				return fmt.Errorf("header not present: %s", itemID)
+				return fmt.Errorf("header not present: date")
 			}
-		}
+			if index, ok := headerNameToIndexMap["email"]; ok {
+				newRow[index] = c.userInfo.Email
+			} else {
+				return fmt.Errorf("header not present: email")
+			}
+			for _, item := range c.answers {
+				value := ""
+				var itemID string
+				if strings.HasPrefix(item, "+") {
+					value = "1"
+					itemID = strings.TrimPrefix(item, "+")
+				} else if strings.HasPrefix(item, "-") {
+					value = "0"
+					itemID = strings.TrimPrefix(item, "-")
+				}
 
-		response, err := sheetsService.Spreadsheets.Values.Append(c.fileID, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{newRow}}).ValueInputOption("RAW").Do()
+				if index, ok := headerNameToIndexMap[itemID]; ok {
+					newRow[index] = value
+				} else {
+					return fmt.Errorf("header not present: %s", itemID)
+				}
+			}
+
+			response, err := sheetsService.Spreadsheets.Values.Append(c.fileID, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{newRow}}).ValueInputOption("RAW").Do()
+			if err != nil {
+				return fmt.Errorf("error appending value range: %w", err)
+			}
+			slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range appended.", "response", response)
+
+			return nil
+		}()
 		if err != nil {
-			return fmt.Errorf("error appending value range: %w", err)
+			slog.ErrorContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: error.", "err", err)
+			blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error saving file: "+err.Error()))
+			return
 		}
-		slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range appended.", "response", response)
 
-		return nil
-	}()
-	if err != nil {
-		slog.ErrorContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: error.", "err", err)
-		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error saving file: "+err.Error()))
-		return
-	}
-
-	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your responses have been saved."))
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your responses have been saved."))
+	})
 }
 
 type SheetData struct {
@@ -1035,45 +1073,67 @@ func (c *SurveyPage) loadSheetData(ctx app.Context) error {
 func (c *SurveyPage) loadLatestResponsesForEmail(ctx app.Context, email string) {
 	slog.InfoContext(ctx.Context, "SurveyPage: loadLatestResponsesForEmail", "email", email)
 
-	err := c.loadSheetData(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx.Context, "SurveyPage: loadMyLatestResponses: error.", "err", err)
-		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
-		return
-	}
+	ctx.Async(func() {
+		if c.tokenIsExpired(ctx) {
+			slog.InfoContext(ctx.Context, "SurveyPage: loadLatestResponsesForEmail: token is expired")
+			err := c.refreshToken(ctx)
+			if err != nil {
+				blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error refreshing token: "+err.Error()))
+				return
+			}
+		}
 
-	previousRecord := c.sheetData.GetLatestRecordByEmail(email)
-	if previousRecord == nil {
-		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("No responses found for "+email+"."))
-		return
-	}
+		err := c.loadSheetData(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx.Context, "SurveyPage: loadMyLatestResponses: error.", "err", err)
+			blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
+			return
+		}
 
-	c.answers = []string{}
-	c.addAnswer(ctx, previousRecord.Answers...)
+		previousRecord := c.sheetData.GetLatestRecordByEmail(email)
+		if previousRecord == nil {
+			blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("No responses found for "+email+"."))
+			return
+		}
 
-	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("The previous response from "+previousRecord.Date+" has been loaded from "+email+"."))
+		c.answers = []string{}
+		c.addAnswer(ctx, previousRecord.Answers...)
+
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("The previous response from "+previousRecord.Date+" has been loaded from "+email+"."))
+	})
 }
 
 func (c *SurveyPage) loadMyLatestResponses(ctx app.Context) {
 	slog.InfoContext(ctx.Context, "SurveyPage: loadMyLatestResponses", "fileID", c.fileID)
 
-	err := c.loadSheetData(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx.Context, "SurveyPage: loadMyLatestResponses: error.", "err", err)
-		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
-		return
-	}
+	ctx.Async(func() {
+		if c.tokenIsExpired(ctx) {
+			slog.InfoContext(ctx.Context, "SurveyPage: loadMyLatestResponses: token is expired")
+			err := c.refreshToken(ctx)
+			if err != nil {
+				blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error refreshing token: "+err.Error()))
+				return
+			}
+		}
 
-	previousRecord := c.sheetData.GetLatestRecordByEmail(c.userInfo.Email)
-	if previousRecord == nil {
-		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("No previous responses found."))
-		return
-	}
+		err := c.loadSheetData(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx.Context, "SurveyPage: loadMyLatestResponses: error.", "err", err)
+			blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
+			return
+		}
 
-	c.answers = []string{}
-	c.addAnswer(ctx, previousRecord.Answers...)
+		previousRecord := c.sheetData.GetLatestRecordByEmail(c.userInfo.Email)
+		if previousRecord == nil {
+			blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("No previous responses found."))
+			return
+		}
 
-	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response from "+previousRecord.Date+" has been loaded."))
+		c.answers = []string{}
+		c.addAnswer(ctx, previousRecord.Answers...)
+
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response from "+previousRecord.Date+" has been loaded."))
+	})
 }
 
 func (c *SurveyPage) loadFileInfo(ctx app.Context) error {
