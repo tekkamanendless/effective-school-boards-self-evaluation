@@ -47,6 +47,7 @@ type SurveyPage struct {
 	fileID         string
 	pickedFile     bool // This is true when the user has picked a file.
 	pickedFileName string
+	sheetData      *SheetData
 }
 
 func (c *SurveyPage) OnMount(ctx app.Context) {
@@ -324,18 +325,55 @@ func (c *SurveyPage) Render() app.UI {
 														blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Text("Link copied to clipboard."))
 													}),
 											),
-										blazar.Button().
-											Icon(tabler.IconOutlineDownload).
-											Label("Load Latest Responses").
-											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
-												c.loadLatest(ctx, c.fileID)
-											}),
-										blazar.Button().
-											Icon(tabler.IconOutlineDeviceFloppy).
-											Label("Save Current Responses").
-											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
-												c.saveFile(ctx, c.fileID)
-											}),
+										app.FieldSet().
+											Body(
+												app.Legend().Text("My Responses"),
+												blazar.Button().
+													Icon(tabler.IconOutlineDownload).
+													Label("Load My Latest Responses").
+													OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+														c.loadMyLatestResponses(ctx)
+													}),
+												blazar.Button().
+													Icon(tabler.IconOutlineDeviceFloppy).
+													Label("Save My Current Responses").
+													Disabled(len(c.answers) == 0).
+													OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+														c.saveMyCurrentResponses(ctx)
+													}),
+											),
+										app.If(c.sheetData != nil, func() app.UI {
+											emailAddresses := c.sheetData.GetEmailAddresses()
+
+											return app.FieldSet().
+												Body(
+													app.Legend().Text("All Responses"),
+													blazar.Collapse().
+														Open(true).
+														Label("Respondants: "+strconv.Itoa(len(c.sheetData.GetEmailAddresses()))).
+														Body(
+															app.Range(emailAddresses).Slice(func(i int) app.UI {
+																emailAddress := emailAddresses[i]
+																lastResponse := c.sheetData.GetLatestRecordByEmail(emailAddress)
+																if lastResponse == nil {
+																	return app.Div().Text(emailAddress)
+																}
+																return app.Div().
+																	Body(
+																		app.Text(emailAddress+" (Last response: "+lastResponse.Date+")"),
+																		blazar.Button().
+																			Icon(tabler.IconOutlineDownload).
+																			Label("Load Latest Responses").
+																			DataSet("email-address", emailAddress).
+																			OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+																				emailAddress := e.Target.Call("closest", "[data-email-address]").Get("dataset").Get("emailAddress").String()
+																				c.loadLatestResponsesForEmail(ctx, emailAddress)
+																			}),
+																	)
+															}),
+														),
+												)
+										}),
 									)
 							}),
 						}
@@ -642,14 +680,21 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 
 			c.pickedFile = true
 			c.pickedFileName = doc.Name
+
+			err := c.loadSheetData(ctx)
+			if err != nil {
+				slog.ErrorContext(ctx.Context, "SurveyPage: pickFile: error loading sheet data.", "err", err)
+				blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error loading sheet data: "+err.Error()))
+				return
+			}
 		})
 	})
 	picker := pickerBuilder.Build()
 	picker.SetVisible(true)
 }
 
-func (c *SurveyPage) saveFile(ctx app.Context, id string) {
-	slog.InfoContext(ctx.Context, "SurveyPage: saveFile", "id", id)
+func (c *SurveyPage) saveMyCurrentResponses(ctx app.Context) {
+	slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses", "fileID", c.fileID)
 
 	err := func() error {
 		tokenSource := oauth2.StaticTokenSource(c.userToken)
@@ -660,36 +705,36 @@ func (c *SurveyPage) saveFile(ctx app.Context, id string) {
 
 		// Test for a header and create one if there isn't one.
 		{
-			valueRange, err := sheetsService.Spreadsheets.Values.Get(id, "1:1").Do()
+			valueRange, err := sheetsService.Spreadsheets.Values.Get(c.fileID, "1:1").Do()
 			if err != nil {
 				return fmt.Errorf("error getting value range: %w", err)
 			}
-			slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range.", "valueRange", valueRange)
+			slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range.", "valueRange", valueRange)
 
-			slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range values.", "values", valueRange.Values)
+			slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values.", "values", valueRange.Values)
 			if len(valueRange.Values) == 0 {
-				slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range values is empty.")
+				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values is empty.")
 
 				headerRow := []any{"date", "email"}
 				for _, item := range c.model.Items {
 					headerRow = append(headerRow, item.ID)
 				}
 
-				response, err := sheetsService.Spreadsheets.Values.Append(id, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{headerRow}}).ValueInputOption("RAW").Do()
+				response, err := sheetsService.Spreadsheets.Values.Append(c.fileID, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{headerRow}}).ValueInputOption("RAW").Do()
 				if err != nil {
 					return fmt.Errorf("error appending initial header: %w", err)
 				}
-				slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range appended.", "response", response)
+				slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range appended.", "response", response)
 			}
 		}
 
 		// Get the header row.
-		valueRange, err := sheetsService.Spreadsheets.Values.Get(id, "1:1").Do()
+		valueRange, err := sheetsService.Spreadsheets.Values.Get(c.fileID, "1:1").Do()
 		if err != nil {
 			return fmt.Errorf("error getting value range: %w", err)
 		}
-		slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range.", "valueRange", valueRange)
-		slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range values.", "values", valueRange.Values)
+		slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range.", "valueRange", valueRange)
+		slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range values.", "values", valueRange.Values)
 
 		if len(valueRange.Values) == 0 {
 			return fmt.Errorf("no header row present")
@@ -734,16 +779,16 @@ func (c *SurveyPage) saveFile(ctx app.Context, id string) {
 			}
 		}
 
-		response, err := sheetsService.Spreadsheets.Values.Append(id, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{newRow}}).ValueInputOption("RAW").Do()
+		response, err := sheetsService.Spreadsheets.Values.Append(c.fileID, "A1:ZZ1000", &sheets.ValueRange{Range: "A1:ZZ1000", Values: [][]any{newRow}}).ValueInputOption("RAW").Do()
 		if err != nil {
 			return fmt.Errorf("error appending value range: %w", err)
 		}
-		slog.InfoContext(ctx.Context, "SurveyPage: saveFile: value range appended.", "response", response)
+		slog.InfoContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: value range appended.", "response", response)
 
 		return nil
 	}()
 	if err != nil {
-		slog.ErrorContext(ctx.Context, "SurveyPage: saveFile: error.", "err", err)
+		slog.ErrorContext(ctx.Context, "SurveyPage: saveMyCurrentResponses: error.", "err", err)
 		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error saving file: "+err.Error()))
 		return
 	}
@@ -751,8 +796,51 @@ func (c *SurveyPage) saveFile(ctx app.Context, id string) {
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your responses have been saved."))
 }
 
-func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
-	slog.InfoContext(ctx.Context, "SurveyPage: loadLatest", "id", id)
+type SheetData struct {
+	Records []SheetDataRecord
+}
+
+type SheetDataRecord struct {
+	Date    string
+	Email   string
+	Answers []string
+}
+
+func (s *SheetData) GetEmailAddresses() []string {
+	emailAddresses := []string{}
+	emailAddressMap := map[string]bool{}
+	for _, record := range s.Records {
+		if !emailAddressMap[record.Email] {
+			emailAddresses = append(emailAddresses, record.Email)
+			emailAddressMap[record.Email] = true
+		}
+	}
+	slices.Sort(emailAddresses)
+	return emailAddresses
+}
+
+func (s *SheetData) GetRecordsByEmail(email string) []SheetDataRecord {
+	records := []SheetDataRecord{}
+	for _, record := range s.Records {
+		if record.Email == email {
+			records = append(records, record)
+		}
+	}
+	return records
+}
+
+func (s *SheetData) GetLatestRecordByEmail(email string) *SheetDataRecord {
+	records := s.GetRecordsByEmail(email)
+	if len(records) == 0 {
+		return nil
+	}
+	return &records[len(records)-1]
+}
+
+func (c *SurveyPage) loadSheetData(ctx app.Context) error {
+	sheetData := SheetData{
+		Records: []SheetDataRecord{},
+	}
 
 	err := func() error {
 		tokenSource := oauth2.StaticTokenSource(c.userToken)
@@ -762,12 +850,12 @@ func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
 		}
 
 		// Get the header row.
-		valueRange, err := sheetsService.Spreadsheets.Values.Get(id, "A1:ZZ10000").Do()
+		valueRange, err := sheetsService.Spreadsheets.Values.Get(c.fileID, "A1:ZZ10000").Do()
 		if err != nil {
 			return fmt.Errorf("error getting value range: %w", err)
 		}
-		slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: value range.", "valueRange", valueRange)
-		slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: value range values.", "values", valueRange.Values)
+		slog.InfoContext(ctx.Context, "SurveyPage: readSheetData: value range.", "valueRange", valueRange)
+		slog.InfoContext(ctx.Context, "SurveyPage: readSheetData: value range values.", "values", valueRange.Values)
 
 		if len(valueRange.Values) == 0 {
 			return fmt.Errorf("no header row present")
@@ -788,7 +876,7 @@ func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
 			}
 			rows = append(rows, row)
 		}
-		//slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: Rows.", "rows", rows)
+		//slog.InfoContext(ctx.Context, "SurveyPage: readSheetData: Rows.", "rows", rows)
 
 		headerNameToIndexMap := map[string]int{}
 		for index, name := range header {
@@ -831,13 +919,8 @@ func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
 
 		var answers []string
 		for _, row := range rows {
+			rowDate := row[headerNameToIndexMap["date"]]
 			rowEmail := row[headerNameToIndexMap["email"]]
-			//slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: Row email.", "rowEmail", rowEmail)
-			if rowEmail != c.userInfo.Email {
-				continue
-			}
-			slog.InfoContext(ctx.Context, "SurveyPage: loadLatest: Valid row.", "row", row)
-
 			answers = []string{}
 			for _, name := range header {
 				if !validItemIDMap[name] {
@@ -851,22 +934,65 @@ func (c *SurveyPage) loadLatest(ctx app.Context, id string) {
 					answers = append(answers, "-"+name)
 				}
 			}
-		}
 
-		if answers == nil {
-			return fmt.Errorf("no previous responses found")
+			record := SheetDataRecord{
+				Date:    rowDate,
+				Email:   rowEmail,
+				Answers: answers,
+			}
+			sheetData.Records = append(sheetData.Records, record)
 		}
-
-		c.answers = []string{}
-		c.addAnswer(ctx, answers...)
 
 		return nil
 	}()
 	if err != nil {
-		slog.ErrorContext(ctx.Context, "SurveyPage: loadLatest: error.", "err", err)
+		return err
+	}
+
+	c.sheetData = &sheetData
+	return nil
+}
+
+func (c *SurveyPage) loadLatestResponsesForEmail(ctx app.Context, email string) {
+	slog.InfoContext(ctx.Context, "SurveyPage: loadLatestResponsesForEmail", "email", email)
+
+	err := c.loadSheetData(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx.Context, "SurveyPage: loadMyLatestResponses: error.", "err", err)
 		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
 		return
 	}
+
+	previousRecord := c.sheetData.GetLatestRecordByEmail(email)
+	if previousRecord == nil {
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("No responses found for "+email+"."))
+		return
+	}
+
+	c.answers = []string{}
+	c.addAnswer(ctx, previousRecord.Answers...)
+
+	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("The previous response has been loaded from "+email+"."))
+}
+
+func (c *SurveyPage) loadMyLatestResponses(ctx app.Context) {
+	slog.InfoContext(ctx.Context, "SurveyPage: loadMyLatestResponses", "fileID", c.fileID)
+
+	err := c.loadSheetData(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx.Context, "SurveyPage: loadMyLatestResponses: error.", "err", err)
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("Error reading previous responses: "+err.Error()))
+		return
+	}
+
+	previousRecord := c.sheetData.GetLatestRecordByEmail(c.userInfo.Email)
+	if previousRecord == nil {
+		blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Bad().Text("No previous responses found."))
+		return
+	}
+
+	c.answers = []string{}
+	c.addAnswer(ctx, previousRecord.Answers...)
 
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response has been loaded."))
 }
