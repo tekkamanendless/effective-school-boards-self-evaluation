@@ -41,14 +41,15 @@ type SurveyPage struct {
 	loggedIn  bool // This will be true when the user is logged in.
 	loggingIn bool // This will be true when the user is logging in.
 
-	model          *effectiveschoolboards.Model
-	items          []effectiveschoolboards.Item
-	answers        []string
-	score          effectiveschoolboards.Score
-	fileID         string
-	pickedFile     bool // This is true when the user has picked a file.
-	pickedFileName string
-	sheetData      *SheetData
+	model            *effectiveschoolboards.Model
+	items            []effectiveschoolboards.Item
+	answers          []string
+	score            effectiveschoolboards.Score
+	fileID           string
+	pickedFile       bool // This is true when the user has picked a file.
+	pickedFileName   string
+	sheetData        *SheetData
+	filterCategories []string
 }
 
 func (c *SurveyPage) OnMount(ctx app.Context) {
@@ -421,7 +422,29 @@ func (c *SurveyPage) Render() app.UI {
 													Style("font-weight", "bold").
 													Body(
 														app.Td().
-															Text(category.Name+":"),
+															Body(
+																app.Text(category.Name),
+															),
+														app.Td().
+															Body(
+																blazar.Icon().
+																	Style("cursor", "pointer").
+																	Icon(func() string {
+																		if slices.Contains(c.filterCategories, category.Name) {
+																			return tabler.IconFilledFilter
+																		}
+																		return tabler.IconOutlineFilter
+																	}()).
+																	Title("Filter on "+category.Name).
+																	OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+																		if slices.Contains(c.filterCategories, category.Name) {
+																			c.filterCategories = slices.Delete(c.filterCategories, slices.Index(c.filterCategories, category.Name), 1)
+																		} else {
+																			c.filterCategories = append(c.filterCategories, category.Name)
+																		}
+																		ctx.Update()
+																	}),
+															),
 														app.Td().
 															Style("text-align", "right").
 															Text(strconv.Itoa(c.score.CategoryScores[category.Name])+" points"),
@@ -445,9 +468,26 @@ func (c *SurveyPage) Render() app.UI {
 							app.Range(c.items).Slice(func(i int) app.UI {
 								item := c.items[i]
 
+								showItem := true
+								if len(c.filterCategories) > 0 {
+									showItem = false
+									for _, category := range c.filterCategories {
+										if _, ok := item.CategoryScoreMap[category]; ok {
+											showItem = true
+											break
+										}
+									}
+								}
+
 								return app.Div().
 									Class("item").
 									DataSet("id", item.ID).
+									Style("display", func() string {
+										if showItem {
+											return "block"
+										}
+										return "none"
+									}()).
 									Body(
 										app.Div().
 											Class("item-text").
