@@ -20,6 +20,7 @@ import (
 	"github.com/tekkamanendless/effective-school-boards-self-evaluation/effectiveschoolboards"
 	"golang.org/x/oauth2"
 	admin "google.golang.org/api/admin/reports/v1"
+	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/googleapi"
 	googleoauth2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
@@ -103,6 +104,7 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 		if c.userToken != nil && c.userToken.AccessToken != "" {
 			slog.InfoContext(ctx.Context, "SurveyPage: OnMount: Saved token found.", "token", c.userToken)
 
+			loggedIn := false
 			if c.tokenIsExpired(ctx) {
 				slog.InfoContext(ctx.Context, "SurveyPage: OnMount: Token is expired, refreshing token.")
 
@@ -110,7 +112,7 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 				if err != nil {
 					slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: Could not refresh token.", "err", err)
 				} else {
-					// TODO: DO SOMETHING ON LOGIN.
+					loggedIn = true
 				}
 			} else {
 				slog.InfoContext(ctx.Context, "SurveyPage: OnMount: Token is not expired, logging in with saved token.")
@@ -119,7 +121,36 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 				if err != nil {
 					slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: Could not log in with saved token.", "err", err)
 				} else {
-					// TODO: DO SOMETHING ON LOGIN.
+					loggedIn = true
+				}
+			}
+
+			if loggedIn {
+				// Take action on login.
+
+				if c.fileID != "" {
+					tokenSource := oauth2.StaticTokenSource(c.userToken)
+					slog.InfoContext(ctx.Context, "SurveyPage: OnMount: tokenSource.", "tokenSource", tokenSource)
+
+					driveService, err := drive.NewService(ctx, option.WithTokenSource(tokenSource))
+					if err != nil {
+						slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: error creating drive service.", "err", err)
+					} else {
+						file, err := driveService.Files.Get(c.fileID).Fields(googleapi.Field("name")).Do()
+						if err != nil {
+							slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: error getting file.", "err", err)
+						} else {
+							c.pickedFileName = file.Name
+
+							slog.InfoContext(ctx.Context, "SurveyPage: OnMount: Loading sheet data for file ID.", "fileID", c.fileID)
+							err := c.loadSheetData(ctx)
+							if err != nil {
+								slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: error loading sheet data.", "err", err)
+							} else {
+								c.pickedFile = true
+							}
+						}
+					}
 				}
 			}
 		}
@@ -655,7 +686,7 @@ func (c *SurveyPage) pickFile(ctx app.Context) {
 	pickerBuilder := googlepickerjs.NewPickerBuilder()
 	pickerBuilder.SetOAuthToken(c.userToken.AccessToken)
 	pickerBuilder.SetDeveloperKey("AIzaSyDCCJeLBokY2TjBVphFgD9YagDGCaxi6NI")
-	pickerBuilder.SetAppId("ddm-personal")
+	pickerBuilder.SetAppId("733119922879") // ddm-personal
 	if c.fileID != "" {
 		docsView := googlepickerjs.NewDocsView(nil)
 		docsView.SetFileIds(c.fileID)
@@ -854,8 +885,8 @@ func (c *SurveyPage) loadSheetData(ctx app.Context) error {
 		if err != nil {
 			return fmt.Errorf("error getting value range: %w", err)
 		}
-		slog.InfoContext(ctx.Context, "SurveyPage: readSheetData: value range.", "valueRange", valueRange)
-		slog.InfoContext(ctx.Context, "SurveyPage: readSheetData: value range values.", "values", valueRange.Values)
+		slog.InfoContext(ctx.Context, "SurveyPage: loadSheetData: value range.", "valueRange", valueRange)
+		slog.InfoContext(ctx.Context, "SurveyPage: loadSheetData: value range values.", "values", valueRange.Values)
 
 		if len(valueRange.Values) == 0 {
 			return fmt.Errorf("no header row present")
@@ -876,7 +907,7 @@ func (c *SurveyPage) loadSheetData(ctx app.Context) error {
 			}
 			rows = append(rows, row)
 		}
-		//slog.InfoContext(ctx.Context, "SurveyPage: readSheetData: Rows.", "rows", rows)
+		//slog.InfoContext(ctx.Context, "SurveyPage: loadSheetData: Rows.", "rows", rows)
 
 		headerNameToIndexMap := map[string]int{}
 		for index, name := range header {
@@ -972,7 +1003,7 @@ func (c *SurveyPage) loadLatestResponsesForEmail(ctx app.Context, email string) 
 	c.answers = []string{}
 	c.addAnswer(ctx, previousRecord.Answers...)
 
-	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("The previous response has been loaded from "+email+"."))
+	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("The previous response from "+previousRecord.Date+" has been loaded from "+email+"."))
 }
 
 func (c *SurveyPage) loadMyLatestResponses(ctx app.Context) {
@@ -994,5 +1025,5 @@ func (c *SurveyPage) loadMyLatestResponses(ctx app.Context) {
 	c.answers = []string{}
 	c.addAnswer(ctx, previousRecord.Answers...)
 
-	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response has been loaded."))
+	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response from "+previousRecord.Date+" has been loaded."))
 }
