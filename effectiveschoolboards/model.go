@@ -118,17 +118,25 @@ func (m *Model) NextItems(answers []string) []Item {
 	return nextItems
 }
 
+type Score struct {
+	Total          int            // This is the total score.
+	CategoryScores map[string]int // This maps a category to its score.
+}
+
 // CalculateScore calculates the score based on the given answers.
-func (m *Model) CalculateScore(answers []string) int {
-	score := 0
+func (m *Model) CalculateScore(answers []string) Score {
+	score := Score{
+		CategoryScores: map[string]int{},
+	}
+
 	for _, category := range m.Categories {
-		categoryScore := 0
 		for _, categoryTier := range category.Tiers {
 			if categoryTier.MeetsRequirements(answers) {
-				categoryScore = categoryTier.Tier
+				score.CategoryScores[category.Name] = categoryTier.Tier
 			}
 		}
-		score += categoryScore
+		score.Total += score.CategoryScores[category.Name]
 	}
+
 	return score
 }

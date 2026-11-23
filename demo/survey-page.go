@@ -44,7 +44,7 @@ type SurveyPage struct {
 	model          *effectiveschoolboards.Model
 	items          []effectiveschoolboards.Item
 	answers        []string
-	score          int
+	score          effectiveschoolboards.Score
 	fileID         string
 	pickedFile     bool // This is true when the user has picked a file.
 	pickedFileName string
@@ -416,10 +416,32 @@ func (c *SurveyPage) Render() app.UI {
 						Style("align-items", "center").
 						Body(
 							app.Div().
-								Style("font-size", "1.2em").
-								Style("font-weight", "bold").
 								Body(
-									app.Text("Score: "+strconv.Itoa(c.score)+"%"),
+									app.Div().
+										Class("score-total").
+										Style("font-size", "1.2em").
+										Style("font-weight", "bold").
+										Body(
+											app.Text("Score: "+strconv.Itoa(c.score.Total)+"%"),
+										),
+									app.Table().
+										Body(
+											app.Range(c.model.Categories).Slice(func(i int) app.UI {
+												category := c.model.Categories[i]
+
+												return app.Tr().
+													Class("score-category").
+													Style("font-size", "0.9em").
+													Style("font-weight", "bold").
+													Body(
+														app.Td().
+															Text(category.Name+":"),
+														app.Td().
+															Style("text-align", "right").
+															Text(strconv.Itoa(c.score.CategoryScores[category.Name])+" points"),
+													)
+											}),
+										),
 								),
 							app.Div().
 								Style("flex", "1"),
