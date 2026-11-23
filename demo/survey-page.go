@@ -129,28 +129,7 @@ func (c *SurveyPage) OnMount(ctx app.Context) {
 				// Take action on login.
 
 				if c.fileID != "" {
-					tokenSource := oauth2.StaticTokenSource(c.userToken)
-					slog.InfoContext(ctx.Context, "SurveyPage: OnMount: tokenSource.", "tokenSource", tokenSource)
-
-					driveService, err := drive.NewService(ctx, option.WithTokenSource(tokenSource))
-					if err != nil {
-						slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: error creating drive service.", "err", err)
-					} else {
-						file, err := driveService.Files.Get(c.fileID).Fields(googleapi.Field("name")).Do()
-						if err != nil {
-							slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: error getting file.", "err", err)
-						} else {
-							c.pickedFileName = file.Name
-
-							slog.InfoContext(ctx.Context, "SurveyPage: OnMount: Loading sheet data for file ID.", "fileID", c.fileID)
-							err := c.loadSheetData(ctx)
-							if err != nil {
-								slog.ErrorContext(ctx.Context, "SurveyPage: OnMount: error loading sheet data.", "err", err)
-							} else {
-								c.pickedFile = true
-							}
-						}
-					}
+					c.loadFileInfo(ctx)
 				}
 			}
 		}
@@ -405,6 +384,12 @@ func (c *SurveyPage) Render() app.UI {
 														),
 												)
 										}),
+										blazar.Button().
+											Icon(tabler.IconOutlineRefresh).
+											Label("Refresh File Info").
+											OnClick(func(ctx app.Context, e htmlevent.MouseEvent) {
+												c.loadFileInfo(ctx)
+											}),
 									)
 							}),
 						}
@@ -1048,4 +1033,31 @@ func (c *SurveyPage) loadMyLatestResponses(ctx app.Context) {
 	c.addAnswer(ctx, previousRecord.Answers...)
 
 	blazar.SendSnackbarMessage(ctx, "snackbar-message", blazar.SnackbarMessage().Closable(true).Good().Text("Your previous response from "+previousRecord.Date+" has been loaded."))
+}
+
+func (c *SurveyPage) loadFileInfo(ctx app.Context) error {
+	tokenSource := oauth2.StaticTokenSource(c.userToken)
+	slog.InfoContext(ctx.Context, "SurveyPage: OnMount: tokenSource.", "tokenSource", tokenSource)
+
+	driveService, err := drive.NewService(ctx, option.WithTokenSource(tokenSource))
+	if err != nil {
+		return fmt.Errorf("error creating drive service: %w", err)
+	}
+
+	file, err := driveService.Files.Get(c.fileID).Fields(googleapi.Field("name")).Do()
+	if err != nil {
+		return fmt.Errorf("error getting file: %w", err)
+	}
+
+	c.pickedFileName = file.Name
+
+	slog.InfoContext(ctx.Context, "SurveyPage: OnMount: Loading sheet data for file ID.", "fileID", c.fileID)
+	err = c.loadSheetData(ctx)
+	if err != nil {
+		return fmt.Errorf("error loading sheet data: %w", err)
+	}
+
+	c.pickedFile = true
+
+	return nil
 }
